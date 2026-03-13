@@ -1,0 +1,31 @@
+# Scan output directories (contain potentially sensitive data)
+*/20*/
+*.jsonl
+!examples/output/*.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Temp files
+tmp/
+temp/
