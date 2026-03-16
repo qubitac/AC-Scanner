@@ -756,8 +756,37 @@ run_ssh_scan() {
   # Delegate entirely to ssh_scanner.py
   local ssh_total_timeout=$(( SCAN_TIMEOUT * total_combinations + 60 ))
   verbose "SSH scan total timeout: ${ssh_total_timeout}s (${SCAN_TIMEOUT}s × ${total_combinations} targets + 60s buffer)"
-  timeout "$ssh_total_timeout" env SCAN_TIMEOUT="$SCAN_TIMEOUT" python3 "$SSH_SCANNER" scan "$ssh_hosts_file" crypto/ssh.jsonl 2>&1 \
-    | while IFS= read -r line; do verbose "$line"; done || true
+  # Run SSH scanner in background so we can show spinner with timer
+  timeout "$ssh_total_timeout" env SCAN_TIMEOUT="$SCAN_TIMEOUT" python3 "$SSH_SCANNER" scan "$ssh_hosts_file" crypto/ssh.jsonl 2>/dev/null &
+  local SSH_SCAN_PID=$!
+
+  # Show spinner with timer while waiting
+  start_time=$(date +%s)
+  i=0
+  while kill -0 $SSH_SCAN_PID 2>/dev/null; do
+    current_time=$(date +%s)
+    elapsed=$(( current_time - start_time ))
+    mins=$(( elapsed / 60 ))
+    secs=$(( elapsed % 60 ))
+    char_index=$(( i % ${#spinner_chars[@]} ))
+    spinner="${spinner_chars[$char_index]}"
+    printf "\r${CLEAR_LINE}  ${CYAN}%s${NC} ${DIM}Scanning SSH... (%dm %02ds)${NC}" "$spinner" "$mins" "$secs"
+    i=$(( i + 1 ))
+    sleep 0.3
+  done
+
+  # Collect exit code
+  local ssh_exit=0
+  wait $SSH_SCAN_PID || ssh_exit=$?
+  printf "\r${CLEAR_LINE}"
+
+  if [[ $ssh_exit -eq 124 ]]; then
+    printf '%b\n' "  ${YELLOW}⚠ SSH scan timed out after ${ssh_total_timeout}s${NC}"
+    verbose "SSH scan timed out (exit code 124)"
+  elif [[ $ssh_exit -ne 0 ]]; then
+    printf '%b\n' "  ${YELLOW}⚠ SSH scan exited with code $ssh_exit — results may be incomplete${NC}"
+    verbose "SSH scan failed with exit code $ssh_exit"
+  fi
 
   # Parse counters from output file
   if [[ -s crypto/ssh.jsonl ]]; then
@@ -838,7 +867,7 @@ run_scan() {
   local domain="$1"
   
   # Shared spinner/timing variables used across multiple steps
-  local spinner_chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+  local -a spinner_chars=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
   local start_time i=0 current_time elapsed mins secs char_index spinner count current_count
   # PIDs and temp file paths
   local SUBFINDER_PID SUBFINDER_ERRORS SUBFINDER_EXIT
@@ -915,8 +944,8 @@ run_scan() {
     secs=$((elapsed % 60))
     
     # Get spinner character
-    char_index=$((i % ${#spinner_chars}))
-    spinner="${spinner_chars:$char_index:1}"
+    char_index=$(( i % ${#spinner_chars[@]}))
+    spinner="${spinner_chars[$char_index]}"
     
     printf "\r${CLEAR_LINE}  ${CYAN}%s${NC} ${DIM}Discovering subdomains... (%dm %02ds)${NC}" "$spinner" "$mins" "$secs"
     
@@ -985,8 +1014,8 @@ run_scan() {
     secs=$((elapsed % 60))
     
     # Get spinner character
-    char_index=$((i % ${#spinner_chars}))
-    spinner="${spinner_chars:$char_index:1}"
+    char_index=$(( i % ${#spinner_chars[@]}))
+    spinner="${spinner_chars[$char_index]}"
     
     # Get current count
     count=0
@@ -1007,7 +1036,8 @@ run_scan() {
   if [[ $DNSX_EXIT -eq 0 ]] || [[ -s live/domains_resolved.jsonl ]]; then
     verbose "dnsx completed, processing results"
     if [[ -f live/domains_resolved.jsonl ]] && [[ -s live/domains_resolved.jsonl ]]; then
-      jq -r 'select(.status_code != "NXDOMAIN") | .host // empty' live/domains_resolved.jsonl 2>/dev/null | sort -u > live/domains.txt 2>/dev/null || touch live/domains.txt
+      jq -r 'select(.status_code != "NXDOMAIN") | .host // empty' live/domains_resolved.jsonl 2>/dev/null | sort -u > live/domains.txt 2>/dev/null || true
+      [[ -f live/domains.txt ]] || touch live/domains.txt
       verbose "Extracted unique hosts from dnsx JSON output"
     else
       touch live/domains.txt
@@ -1096,8 +1126,8 @@ run_scan() {
         secs=$((elapsed % 60))
         
         # Get spinner character
-        char_index=$((i % ${#spinner_chars}))
-        spinner="${spinner_chars:$char_index:1}"
+        char_index=$(( i % ${#spinner_chars[@]}))
+        spinner="${spinner_chars[$char_index]}"
         
         # Get current count
         current_count=0
@@ -1298,7 +1328,6 @@ run_scan() {
         if [[ $EXIT_CODE -eq 124 ]]; then
           tls_timeout=$(( tls_timeout + 1 )) || true
           echo "$host_port" >> crypto/tls_timeouts.txt
-          printf "\r${CLEAR_LINE}  ${YELLOW}⚠ %d host(s) timed out so far (timeout: %ss) — scanning next...${NC}" "$tls_timeout" "$SCAN_TIMEOUT"
           verbose "Timeout scanning $host_port (exit code 124) - timeout: ${SCAN_TIMEOUT}s"
         else
           verbose "Failed to scan $host_port (exit code $EXIT_CODE)"
@@ -1310,11 +1339,10 @@ run_scan() {
 
     TLS_SCANNED=${HTTPS_COUNT:-0}
     TLS_SUCCESS=$tls_success
-    [[ "$tls_timeout" -gt 0 ]] && printf "\n"
     printf "\r${CLEAR_LINE}"
     verbose "TLS scan complete: $TLS_SUCCESS/$TLS_SCANNED HTTPS scanned successfully"
     if [[ "$TLS_SUCCESS" -eq 0 ]] && [[ "$TLS_SCANNED" -gt 0 ]]; then
-      progress_complete "HTTPS scanned — all timed out, try -t $((SCAN_TIMEOUT * 2))" 0
+      progress_complete "HTTPS scanned — all timed out, try -t $((SCAN_TIMEOUT * 3)) or higher." 0
     elif [[ "$TLS_SUCCESS" -lt "$TLS_SCANNED" ]]; then
       progress_complete "HTTPS scanned — $TLS_SUCCESS of $TLS_SCANNED succeeded" "$TLS_SUCCESS"
     else
@@ -1322,7 +1350,6 @@ run_scan() {
     fi
 
     if [[ "$tls_timeout" -gt 0 ]]; then
-      echo ""
       printf '%b\n' "  ${YELLOW}⚠ $tls_timeout host(s) timed out — see: ${CYAN}crypto/tls_timeouts.txt${NC}"
     fi
   else
@@ -1393,7 +1420,6 @@ run_scan() {
   verbose "Starting CBOM (Cryptographic Bill of Materials) generation"
   
   progress_bar 50 100 "Building CBOM..."
-  printf '\n'
   
   CBOM_SCRIPT=""
   [[ -f "$SCRIPT_DIR/pqc_cbom.py" ]] && CBOM_SCRIPT="$SCRIPT_DIR/pqc_cbom.py"
@@ -1572,8 +1598,8 @@ run_scan() {
       fi
     done
     echo ""
-    printf '%b\n' "  ${DIM}To compare: diff ${domain_scan_dir}/<timestamp1>/cbom/summary.md \\${NC}"
-    printf '%b\n' "             ${DIM}              ${domain_scan_dir}/<timestamp2>/cbom/summary.md${NC}"
+    verbose "  ${DIM}To compare: diff ${domain_scan_dir}/<timestamp1>/cbom/summary.md \\"
+    verbose "             ${DIM}              ${domain_scan_dir}/<timestamp2>/cbom/summary.md${NC}"
     echo ""
   fi
 
