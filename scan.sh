@@ -71,7 +71,11 @@ verbose() {
 
 count_lines() {
   local file="$1"
-  [[ -f "$file" ]] && [[ -s "$file" ]] && wc -l < "$file" | tr -d ' ' || echo 0
+  [[ -f "$file" ]] && [[ -s "$file" ]] || { echo 0; return; }
+  local n
+  n=$(wc -l < "$file" | tr -d ' ')
+  [[ "$n" -eq 0 ]] && n=1
+  echo "$n"
 }
 
 # Portable timestamp formatter — works on Linux (date -d) and macOS (date -jf)
@@ -258,8 +262,137 @@ check_dependencies() {
     exit 1
   fi
 
+  # ── Minimum version checks ────────────────────────────────────────────────
+  printf '%b\n' "${WHITE}Checking minimum versions...${NC}"
+  echo ""
+
+  local version_ok=true
+  local outdated_tools=()
+
+  # Helper: returns 0 (true) if version $1 >= $2
+  version_gte() {
+    [ "$(printf '%s\n%s' "$1" "$2" | sort -V | head -1)" = "$2" ]
+  }
+
+  # Helper: check a tool version
+  check_version() {
+    local tool="$1"
+    local actual="$2"
+    local minimum="$3"
+    local fix_cmd="$4"
+
+    if [[ -z "$actual" ]]; then
+      return
+    fi
+
+    if version_gte "$actual" "$minimum"; then
+      printf '%b\n' "  ${GREEN}✓${NC} $tool v${actual} ${DIM}(>= $minimum)${NC}"
+    else
+      printf '%b\n' "  ${RED}✗${NC} $tool v${actual} ${RED}too old — need >= $minimum${NC}"
+      outdated_tools+=("$tool:$fix_cmd")
+      version_ok=false
+    fi
+  }
+
+  # httpx >= 1.9.0
+  local httpx_ver
+  if command -v httpx &> /dev/null; then
+    httpx_ver=$(httpx -version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    check_version "httpx" "$httpx_ver" "1.9.0" "go install github.com/projectdiscovery/httpx/cmd/httpx@latest"
+  fi
+
+  # subfinder >= 2.11.0
+  local subfinder_ver
+  if command -v subfinder &> /dev/null; then
+    subfinder_ver=$(subfinder -version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    check_version "subfinder" "$subfinder_ver" "2.11.0" "go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest"
+  fi
+
+  # dnsx >= 1.2.3
+  local dnsx_ver
+  if command -v dnsx &> /dev/null; then
+    dnsx_ver=$(dnsx -version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    check_version "dnsx" "$dnsx_ver" "1.2.3" "go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest"
+  fi
+
+  # ssh-audit >= 3.3.0 (use -h not --version)
+  local sshaudit_ver
+  if command -v ssh-audit &> /dev/null; then
+    sshaudit_ver=$(ssh-audit -h 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    check_version "ssh-audit" "$sshaudit_ver" "3.3.0" "pip3 install --upgrade ssh-audit"
+  fi
+
+  # jq >= 1.8
+  local jq_ver
+  if command -v jq &> /dev/null; then
+    jq_ver=$(jq --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
+    check_version "jq" "${jq_ver}.0" "1.8.0" "brew upgrade jq"
+  fi
+
+  # openssl >= 3.6.1
+  local openssl_ver
+  if command -v openssl &> /dev/null; then
+    openssl_ver=$(openssl version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    check_version "openssl" "$openssl_ver" "3.6.1" "brew upgrade openssl"
+  fi
+
+  # python3 >= 3.10.4
+  local python_ver
+  if command -v python3 &> /dev/null; then
+    python_ver=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    check_version "python3" "$python_ver" "3.10.4" "brew upgrade python3"
+  fi
+
+  echo ""
+
+  # If any tools are outdated offer to auto-update
+  if [[ "$version_ok" == "false" ]]; then
+    printf '%b\n' "${YELLOW}Outdated tools detected.${NC}"
+    echo ""
+
+    local REPLY
+    read -p "Would you like to update outdated tools automatically? [y/N] " -n 1 -r
+    echo ""
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      printf '%b\n' "${WHITE}Updating outdated tools...${NC}"
+      echo ""
+
+      local tool_entry tool_name fix_cmd still_outdated=false
+      for tool_entry in "${outdated_tools[@]}"; do
+        tool_name="${tool_entry%%:*}"
+        fix_cmd="${tool_entry##*:}"
+        printf '%b\n' "${CYAN}Updating $tool_name...${NC}"
+        if eval "$fix_cmd"; then
+          printf '%b\n' "  ${GREEN}✓${NC} $tool_name updated successfully"
+          if [[ "$fix_cmd" == go\ install* ]]; then
+            export PATH="$(go env GOPATH)/bin:$PATH"
+          fi
+        else
+          printf '%b\n' "  ${RED}✗${NC} $tool_name update failed"
+          still_outdated=true
+        fi
+      done
+
+      echo ""
+
+      if [[ "$still_outdated" == "true" ]]; then
+        printf '%b\n' "${RED}Error: Some tools could not be updated. Please update them manually.${NC}"
+        exit 1
+      else
+        printf '%b\n' "${GREEN}✓ All tools updated successfully${NC}"
+      fi
+    else
+      echo ""
+      printf '%b\n' "${RED}Error: Some tools are below minimum required versions.${NC}"
+      printf '%b\n' "${DIM}Please update them manually and try again.${NC}"
+      echo ""
+      exit 1
+    fi
+  fi
+
   if [[ ${#missing_tools[@]} -eq 0 ]] && [[ "$scripts_ok" == "true" ]]; then
-    printf '%b\n' "${GREEN}✓ All dependencies found${NC}"
+    printf '%b\n' "${GREEN}✓ All dependencies found and versions verified${NC}"
   fi
   echo ""
 }
@@ -605,7 +738,8 @@ run_ssh_scan() {
   IFS=',' read -ra SSH_PORT_ARR <<< "$SSH_PORTS_RESOLVED"
   local total_hosts
   total_hosts=$(count_lines live/domains.txt)
-  local total_combinations=$(( total_hosts * ${#SSH_PORT_ARR[@]} ))
+  local total_combinations
+  total_combinations=$(( total_hosts * ${#SSH_PORT_ARR[@]} )) || true
   SSH_TOTAL=$total_combinations
 
   while IFS= read -r h; do
@@ -620,7 +754,9 @@ run_ssh_scan() {
   > crypto/ssh.jsonl
 
   # Delegate entirely to ssh_scanner.py
-  SCAN_TIMEOUT="$SCAN_TIMEOUT" python3 "$SSH_SCANNER" scan "$ssh_hosts_file" crypto/ssh.jsonl 2>&1 \
+  local ssh_total_timeout=$(( SCAN_TIMEOUT * total_combinations + 60 ))
+  verbose "SSH scan total timeout: ${ssh_total_timeout}s (${SCAN_TIMEOUT}s × ${total_combinations} targets + 60s buffer)"
+  timeout "$ssh_total_timeout" env SCAN_TIMEOUT="$SCAN_TIMEOUT" python3 "$SSH_SCANNER" scan "$ssh_hosts_file" crypto/ssh.jsonl 2>&1 \
     | while IFS= read -r line; do verbose "$line"; done || true
 
   # Parse counters from output file
@@ -720,7 +856,7 @@ run_scan() {
   local SCAN_START_TIME SCAN_END_TIME SCAN_DURATION SCAN_MINUTES SCAN_SECONDS
   local SUBDOMAIN_COUNT=0 LIVE_COUNT=0 HTTP_COUNT=0
   local HTTPS_COUNT=0 HTTP_SERVICE_COUNT=0 BOTH_COUNT=0 TRUE_HTTP_ONLY=0
-  local TLS_COUNT=0 TLS_SCANNED=0
+  local TLS_COUNT=0 TLS_SCANNED=0 TLS_SUCCESS=0
 
 
   verbose "Starting scan for domain: $domain"
@@ -784,7 +920,7 @@ run_scan() {
     
     printf "\r${CLEAR_LINE}  ${CYAN}%s${NC} ${DIM}Discovering subdomains... (%dm %02ds)${NC}" "$spinner" "$mins" "$secs"
     
-    ((i++)) || true
+    i=$(( i + 1 ))
     sleep 0.3
   done
   
@@ -809,6 +945,13 @@ run_scan() {
     echo "$domain" > raw/subdomains.txt
     SUBDOMAIN_COUNT=1
     verbose "No subdomains found, using root domain only"
+  else
+    # Always ensure root domain is included even when subdomains are found
+    if ! grep -qx "$domain" raw/subdomains.txt; then
+      echo "$domain" >> raw/subdomains.txt
+      SUBDOMAIN_COUNT=$(( SUBDOMAIN_COUNT + 1 )) || true
+      verbose "Added root domain $domain to subdomain list"
+    fi
   fi
   
   verbose "Subdomains saved to raw/subdomains.txt"
@@ -851,7 +994,7 @@ run_scan() {
     
     printf "\r${CLEAR_LINE}  ${CYAN}%s${NC} ${DIM}Resolving DNS... (%dm %02ds) - Found %s live${NC}" "$spinner" "$mins" "$secs" "$count"
     
-    ((i++)) || true
+    i=$(( i + 1 ))
     sleep 0.3
   done
   
@@ -864,7 +1007,7 @@ run_scan() {
   if [[ $DNSX_EXIT -eq 0 ]] || [[ -s live/domains_resolved.jsonl ]]; then
     verbose "dnsx completed, processing results"
     if [[ -f live/domains_resolved.jsonl ]] && [[ -s live/domains_resolved.jsonl ]]; then
-      jq -r '.host // empty' live/domains_resolved.jsonl 2>/dev/null | sort -u > live/domains.txt 2>/dev/null || touch live/domains.txt
+      jq -r 'select(.status_code != "NXDOMAIN") | .host // empty' live/domains_resolved.jsonl 2>/dev/null | sort -u > live/domains.txt 2>/dev/null || touch live/domains.txt
       verbose "Extracted unique hosts from dnsx JSON output"
     else
       touch live/domains.txt
@@ -882,6 +1025,22 @@ run_scan() {
   
   verbose "Live domains saved to live/domains.txt"
   progress_complete "Live domains" "$LIVE_COUNT"
+  if [[ "$LIVE_COUNT" -eq 0 ]]; then
+    printf '%b\n' "${YELLOW}  No live domains found — skipping all scan steps.${NC}"
+    echo ""
+    touch services/http.jsonl
+    touch crypto/tls.jsonl
+    HTTP_COUNT=0
+    HTTPS_COUNT=0
+    HTTP_SERVICE_COUNT=0
+    BOTH_COUNT=0
+    TRUE_HTTP_ONLY=0
+    TLS_COUNT=0
+    TLS_SCANNED=0
+    TLS_INPUT="crypto/tls.jsonl"
+    echo '{"cbom_version":"1.0","total_assets":0,"assets":[]}' > cbom/crypto-bom.json
+    echo "# No data available" > cbom/summary.md
+  else
 
 
   # ════════════════════════════════════════════════════════════════════════════
@@ -897,7 +1056,7 @@ run_scan() {
       # Calculate total combinations (domains × WEB ports only)
       IFS=',' read -ra PORT_ARRAY <<< "$WEB_PORTS"
       PORT_COUNT=${#PORT_ARRAY[@]}
-      TOTAL_COMBINATIONS=$(( LIVE_COUNT * PORT_COUNT ))
+      TOTAL_COMBINATIONS=$(( LIVE_COUNT * PORT_COUNT )) || true
     
       printf '%b\n' "  ${DIM}Scanning $LIVE_COUNT domains × $PORT_COUNT web ports = $TOTAL_COMBINATIONS combinations${NC}"
     
@@ -946,7 +1105,7 @@ run_scan() {
         
         printf "\r${CLEAR_LINE}  ${CYAN}%s${NC} ${DIM}Scanning... (%dm %02ds) - Found %s services${NC}" "$spinner" "$mins" "$secs" "$current_count"
         
-        ((i++)) || true
+        i=$(( i + 1 ))
         sleep 0.3
       done
       
@@ -968,8 +1127,8 @@ run_scan() {
       verbose "Skipping httpx - no live domains to scan"
     fi
   
-  verbose "Web services saved to services/http.jsonl"
-  progress_complete "Web services" "$HTTP_COUNT"
+    verbose "Web services saved to services/http.jsonl"
+    progress_complete "Web services" "$HTTP_COUNT"
 
   else
     # SSH-only mode — skip httpx entirely
@@ -1090,6 +1249,7 @@ run_scan() {
         [[ -n "$fb_port" ]] && awk -v p="$fb_port" '{print $0":"p}' live/domains.txt >> live/hosts_ports.txt 2>/dev/null
       done
       HTTPS_COUNT=$(count_lines live/hosts_ports.txt)
+      HTTP_COUNT=$HTTPS_COUNT
       verbose "Generated $HTTPS_COUNT host:port combinations"
     fi
   fi
@@ -1104,19 +1264,23 @@ run_scan() {
   else
     verbose "Scanner script openssl_scanner.py not found"
   fi
-  
+
+
+  # Run scanner with progress updates
+  # Always create tls.jsonl clean at the start
+  > crypto/tls.jsonl
+
   if [[ -s live/hosts_ports.txt ]] && [[ -n "$SCANNER_SCRIPT" ]]; then
     total_hosts=$(count_lines live/hosts_ports.txt)
     scanned=0
+    local tls_success=0
+    local tls_timeout=0
+    > crypto/tls_timeouts.txt
     verbose "Starting TLS scan of $total_hosts HTTPS hosts"
     
-    # Run scanner with progress updates
-    > crypto/tls.jsonl
-    
     while IFS= read -r host_port; do
-      ((scanned++)) || true
+      scanned=$(( scanned + 1 ))
       progress_bar "$scanned" "$total_hosts" "Scanning $host_port"
-      printf '\n'
       verbose "Scanning [$scanned/$total_hosts]: $host_port"
       
       # Scan individual host with timeout (capture all output)
@@ -1125,15 +1289,17 @@ run_scan() {
       host_port_file=$(mktemp)
       _register_tmp "$host_port_file"
       printf '%s\n' "$host_port" > "$host_port_file"
-      if timeout "$SCAN_TIMEOUT" python3 "$SCANNER_SCRIPT" scan "$host_port_file" /dev/stdout > "$TLS_SCAN_OUTPUT" 2>/dev/null; then
+      if timeout "$SCAN_TIMEOUT" env SCAN_TIMEOUT="$SCAN_TIMEOUT" python3 "$SCANNER_SCRIPT" scan "$host_port_file" /dev/stdout > "$TLS_SCAN_OUTPUT" 2>/dev/null; then
         cat "$TLS_SCAN_OUTPUT" >> crypto/tls.jsonl
+        tls_success=$(( tls_success + 1 )) || true
         verbose "Successfully scanned $host_port"
       else
         EXIT_CODE=$?
         if [[ $EXIT_CODE -eq 124 ]]; then
-          printf "\r${CLEAR_LINE}  ${YELLOW}⚠ TLS scan timed out for %s after %ss${NC}\n" "$host_port" "$SCAN_TIMEOUT"
+          tls_timeout=$(( tls_timeout + 1 )) || true
+          echo "$host_port" >> crypto/tls_timeouts.txt
+          printf "\r${CLEAR_LINE}  ${YELLOW}⚠ %d host(s) timed out so far (timeout: %ss) — scanning next...${NC}" "$tls_timeout" "$SCAN_TIMEOUT"
           verbose "Timeout scanning $host_port (exit code 124) - timeout: ${SCAN_TIMEOUT}s"
-          verbose "Skipping $host_port, continuing with next host..."
         else
           verbose "Failed to scan $host_port (exit code $EXIT_CODE)"
         fi
@@ -1141,44 +1307,57 @@ run_scan() {
       rm -f "$TLS_SCAN_OUTPUT" "$host_port_file"
       
     done < live/hosts_ports.txt
-    
-    # Add HTTP-only hosts to tls.jsonl as no_tls entries with HTTP status info
-    if [[ -s live/http_only.jsonl ]]; then
-      verbose "Adding $HTTP_SERVICE_COUNT HTTP services as no_tls entries"
-      while IFS= read -r line; do
-        host=$(echo "$line" | jq -r '.host // empty' 2>/dev/null)
-        port=$(echo "$line" | jq -r '.port // empty' 2>/dev/null)
-        status_code=$(echo "$line" | jq -r '.status_code // empty' 2>/dev/null)
-        title=$(echo "$line" | jq -r '.title // empty' 2>/dev/null)
-        webserver=$(echo "$line" | jq -r '.webserver // empty' 2>/dev/null)
-        
-        # Create JSON entry with HTTP info — use jq to safely handle special characters
-        safe_port="${port:-0}"; [[ "$safe_port" =~ ^[0-9]+$ ]] || safe_port=0
-        safe_status="${status_code:-null}"; [[ "$safe_status" =~ ^[0-9]+$ ]] || safe_status=null
-        jq -cn \
-          --arg host "$host" \
-          --argjson port "$safe_port" \
-          --argjson http_status "$safe_status" \
-          --arg http_title "${title}" \
-          --arg http_server "${webserver}" \
-          '{host:$host,port:$port,tls_enabled:false,probe_status:"no_tls",tls_version:"",cipher:"",probe_errors:["http_only"],http_status:$http_status,http_title:$http_title,http_server:$http_server}' \
-          >> crypto/tls.jsonl
-      done < live/http_only.jsonl
-    fi
-    
-    # Count actual TLS scans (HTTPS only)
+
     TLS_SCANNED=${HTTPS_COUNT:-0}
-    TLS_COUNT=$(count_lines crypto/tls.jsonl)
-    verbose "TLS scan complete: $TLS_SCANNED HTTPS scanned, ${HTTP_SERVICE_COUNT:-0} HTTP services, $TLS_COUNT total"
-    progress_complete "HTTPS scanned" "$TLS_SCANNED"
+    TLS_SUCCESS=$tls_success
+    [[ "$tls_timeout" -gt 0 ]] && printf "\n"
+    printf "\r${CLEAR_LINE}"
+    verbose "TLS scan complete: $TLS_SUCCESS/$TLS_SCANNED HTTPS scanned successfully"
+    if [[ "$TLS_SUCCESS" -eq 0 ]] && [[ "$TLS_SCANNED" -gt 0 ]]; then
+      progress_complete "HTTPS scanned — all timed out, try -t $((SCAN_TIMEOUT * 2))" 0
+    elif [[ "$TLS_SUCCESS" -lt "$TLS_SCANNED" ]]; then
+      progress_complete "HTTPS scanned — $TLS_SUCCESS of $TLS_SCANNED succeeded" "$TLS_SUCCESS"
+    else
+      progress_complete "HTTPS scanned" "$TLS_SCANNED"
+    fi
+
+    if [[ "$tls_timeout" -gt 0 ]]; then
+      echo ""
+      printf '%b\n' "  ${YELLOW}⚠ $tls_timeout host(s) timed out — see: ${CYAN}crypto/tls_timeouts.txt${NC}"
+    fi
   else
-    touch crypto/tls.jsonl
-    TLS_COUNT=0
     TLS_SCANNED=0
-    verbose "Skipping TLS scan - no hosts or scanner script not found"
+    verbose "Skipping TLS scan - no HTTPS hosts or scanner script not found"
     progress_complete "Skipped (no HTTPS hosts)" 0
   fi
-  
+
+  # Add HTTP-only hosts to tls.jsonl — outside TLS gate, inside HAS_WEB_PORTS
+  # Only runs when HAS_WEB_PORTS=1, only writes when http_only.jsonl has data
+  if [[ -s live/http_only.jsonl ]]; then
+    verbose "Adding $HTTP_SERVICE_COUNT HTTP services as no_tls entries"
+    while IFS= read -r line; do
+      host=$(echo "$line" | jq -r '.host // empty' 2>/dev/null)
+      port=$(echo "$line" | jq -r '.port // empty' 2>/dev/null)
+      status_code=$(echo "$line" | jq -r '.status_code // empty' 2>/dev/null)
+      title=$(echo "$line" | jq -r '.title // empty' 2>/dev/null)
+      webserver=$(echo "$line" | jq -r '.webserver // empty' 2>/dev/null)
+      
+      safe_port="${port:-0}"; [[ "$safe_port" =~ ^[0-9]+$ ]] || safe_port=0
+      safe_status="${status_code:-null}"; [[ "$safe_status" =~ ^[0-9]+$ ]] || safe_status=null
+      jq -cn \
+        --arg host "$host" \
+        --argjson port "$safe_port" \
+        --argjson http_status "$safe_status" \
+        --arg http_title "${title}" \
+        --arg http_server "${webserver}" \
+        '{host:$host,port:$port,tls_enabled:false,probe_status:"no_tls",tls_version:"",cipher:"",probe_errors:["http_only"],http_status:$http_status,http_title:$http_title,http_server:$http_server}' \
+        >> crypto/tls.jsonl
+    done < live/http_only.jsonl
+  fi
+
+  TLS_COUNT=$(count_lines crypto/tls.jsonl)
+  verbose "Total TLS entries (HTTPS + HTTP): $TLS_COUNT"
+
   TLS_INPUT="crypto/tls.jsonl"
 
   else
@@ -1226,16 +1405,26 @@ run_scan() {
     verbose "CBOM script pqc_cbom.py not found"
   fi
   
-  if [[ -n "$CBOM_SCRIPT" ]] && [[ -f "$TLS_INPUT" ]] && [[ -s "$TLS_INPUT" ]]; then
-    verbose "Running pqc_cbom.py on $TLS_INPUT"
-    if python3 "$CBOM_SCRIPT" "$TLS_INPUT" cbom/crypto-bom.json cbom/summary.md > /dev/null 2>&1; then
-      verbose "CBOM generation successful"
-      progress_complete "CBOM generated" 1
-    else
-      verbose "CBOM generation failed, creating error placeholder"
-      echo '{"cbom_version":"1.0","error":"Generation failed","total_assets":0,"assets":[]}' > cbom/crypto-bom.json
-      echo "# CBOM Generation Failed" > cbom/summary.md
+  if [[ -n "$CBOM_SCRIPT" ]] && [[ -f "$TLS_INPUT" ]]; then
+    if [[ ! -s "$TLS_INPUT" ]]; then
+      printf '%b\n' "${YELLOW}WARNING: TLS input file is empty, skipping CBOM generation${NC}"
+      printf '%b\n' "${DIM}  This usually means all TLS scans timed out. Try increasing the timeout with -t flag.${NC}"
+      printf '%b\n' "${DIM}  Example: ./scan.sh $domain -p 443 -t 30${NC}"
+      verbose "Skipping CBOM generation - TLS input file is empty"
+      echo '{"cbom_version":"1.0","total_assets":0,"assets":[]}' > cbom/crypto-bom.json
+      echo "# No data available" > cbom/summary.md
       progress_failed "CBOM generation"
+    else
+      verbose "Running pqc_cbom.py on $TLS_INPUT"
+      if python3 "$CBOM_SCRIPT" "$TLS_INPUT" cbom/crypto-bom.json cbom/summary.md > /dev/null 2>&1; then
+        verbose "CBOM generation successful"
+        progress_complete "CBOM generated" 1
+      else
+        verbose "CBOM generation failed, creating error placeholder"
+        echo '{"cbom_version":"1.0","error":"Generation failed","total_assets":0,"assets":[]}' > cbom/crypto-bom.json
+        echo "# CBOM Generation Failed" > cbom/summary.md
+        progress_failed "CBOM generation"
+      fi
     fi
   else
     verbose "Skipping CBOM generation - no TLS data or script not found"
@@ -1245,6 +1434,8 @@ run_scan() {
   fi
   
   verbose "CBOM saved to cbom/crypto-bom.json and cbom/summary.md"
+
+  fi
   
   # ════════════════════════════════════════════════════════════════════════════
   # Summary
@@ -1286,7 +1477,13 @@ run_scan() {
         printf '%b\n' "    └─ HTTP-only:    ${YELLOW}$HTTP_SERVICE_COUNT${NC} (no HTTPS available)"
       fi
     fi
-    printf '%b\n' "  TLS scanned:       ${CYAN}${TLS_SCANNED:-$TLS_COUNT}${NC}"
+    if [[ "$TLS_SUCCESS" -eq 0 ]] && [[ "$TLS_SCANNED" -gt 0 ]]; then
+      printf '%b\n' "  TLS scanned:       ${YELLOW}0 of $TLS_SCANNED (all timed out)${NC}"
+    elif [[ "$TLS_SUCCESS" -lt "$TLS_SCANNED" ]]; then
+      printf '%b\n' "  TLS scanned:       ${YELLOW}$TLS_SUCCESS of $TLS_SCANNED${NC}"
+    else
+      printf '%b\n' "  TLS scanned:       ${CYAN}${TLS_SCANNED:-$TLS_COUNT}${NC}"
+    fi
   fi
   if [[ "$HAS_SSH_PORTS" -eq 1 ]]; then
     printf '%b\n' "  SSH endpoints:     ${CYAN}$SSH_TOTAL${NC}"
@@ -1311,7 +1508,8 @@ run_scan() {
     --argjson http_services "${HTTP_SERVICE_COUNT:-0}" \
     --argjson both_http_https "${BOTH_COUNT:-0}" \
     --argjson http_only "${TRUE_HTTP_ONLY:-0}" \
-    --argjson tls "${TLS_SCANNED:-$TLS_COUNT}" \
+    --argjson tls "${TLS_SUCCESS:-0}" \
+    --argjson tls_attempted "${TLS_SCANNED:-0}" \
     --argjson ssh_total "$SSH_TOTAL" \
     --argjson ssh_open "$SSH_OPEN" \
     --argjson ssh_filtered "$SSH_FILTERED" \
@@ -1334,6 +1532,7 @@ run_scan() {
         hosts_with_both: $both_http_https,
         http_only_hosts: $http_only,
         tls_scanned: $tls,
+        tls_attempted: $tls_attempted,
         ssh_total: $ssh_total,
         ssh_open: $ssh_open,
         ssh_filtered: $ssh_filtered,
@@ -1353,6 +1552,10 @@ run_scan() {
   printf '%b\n' "     ${DIM}Scan summary${NC}"
   printf '%b\n' "  ${GREEN}→${NC} ${OUTPUT_DIR}/reports/scan_stats.json"
   printf '%b\n' "     ${DIM}Scan statistics${NC}"
+  if [[ -s crypto/tls_timeouts.txt ]]; then
+    printf '%b\n' "  ${YELLOW}→${NC} ${OUTPUT_DIR}/crypto/tls_timeouts.txt"
+    printf '%b\n' "     ${DIM}Timed-out hosts — rescan with: ./scan.sh $domain -p $SCAN_PORTS -t $((SCAN_TIMEOUT * 2))${NC}"
+  fi
   echo ""
 
   # Show all scans for this domain so runs can be compared
