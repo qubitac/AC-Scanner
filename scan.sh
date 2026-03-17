@@ -23,7 +23,7 @@ SCAN_PORTS="${SCAN_PORTS:-443}"
 SCAN_TIMEOUT="${SCAN_TIMEOUT:-10}"
 VERBOSE="${VERBOSE:-0}"
 # Resolve to absolute path so scripts are found correctly when run as "bash scan.sh"
-SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname "$0")" && pwd)}"
+SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 
 # SSH port list (ports that should be scanned with ssh-audit, not httpx/TLS)
 SSH_PORT_LIST="22,2222,2200,22222,8022,222,3022,4022,8222,10022"
@@ -166,7 +166,7 @@ check_dependencies() {
   local version=""
   local cmd=""
   local script=""
-  local still_missing=""
+  local still_missing=false
   
   for cmd in "${tools[@]}"; do
     if command -v "$cmd" &> /dev/null; then
@@ -176,7 +176,7 @@ check_dependencies() {
         python3) version=$(python3 --version 2>/dev/null | cut -d' ' -f2) || true ;;
         jq) version=$(jq --version 2>/dev/null | sed 's/jq-//') || true ;;
 
-        ssh-audit) version=$(ssh-audit --version 2>/dev/null | head -1 | awk '{print $2}') || true ;;
+        ssh-audit) version=$(ssh-audit -h 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1) || true ;;
         timeout) version=$(timeout --version 2>/dev/null | head -1 | awk '{print $NF}') || true ;;
         dig) version=$(dig -v 2>&1 | head -1 | awk '{print $NF}') || true ;;
         *) version=$(command -v "$cmd" | xargs -I{} basename {}) || true ;;
@@ -721,11 +721,13 @@ run_ssh_scan() {
 
   if [[ -z "$SSH_SCANNER" ]]; then
     printf '%b\n' "  ${RED}✗ ssh_scanner.py not found — skipping SSH scan${NC}"
+    progress_complete "Skipped (ssh_scanner.py not found)" 0
     return
   fi
 
   if [[ ! -s live/domains.txt ]]; then
     verbose "No live domains for SSH scan"
+    progress_complete "Skipped (no live domains)" 0
     return
   fi
 
@@ -902,7 +904,10 @@ run_scan() {
   mkdir -p "$OUTPUT_DIR"
   cd "$OUTPUT_DIR" || { printf '%b\n' "${RED}Error: cannot enter output directory: $OUTPUT_DIR${NC}"; exit 1; }
 
-  printf '%b\n' "${WHITE}Output dir:${NC} ${CYAN}${OUTPUT_DIR}${NC}"
+  local scanner_dir
+  scanner_dir=$(basename "$SCRIPT_DIR")
+  local short_output_dir="${OUTPUT_DIR#"$SCRIPT_DIR/"}"
+  printf '%b\n' "${WHITE}Output dir:${NC} ${CYAN}${short_output_dir}${NC}"
   echo ""
   verbose "Created and entered output directory: $OUTPUT_DIR"
 
@@ -1420,6 +1425,7 @@ run_scan() {
   verbose "Starting CBOM (Cryptographic Bill of Materials) generation"
   
   progress_bar 50 100 "Building CBOM..."
+  printf '\n'
   
   CBOM_SCRIPT=""
   [[ -f "$SCRIPT_DIR/pqc_cbom.py" ]] && CBOM_SCRIPT="$SCRIPT_DIR/pqc_cbom.py"
@@ -1435,18 +1441,28 @@ run_scan() {
     if [[ ! -s "$TLS_INPUT" ]]; then
       printf '%b\n' "${YELLOW}WARNING: TLS input file is empty, skipping CBOM generation${NC}"
       printf '%b\n' "${DIM}  This usually means all TLS scans timed out. Try increasing the timeout with -t flag.${NC}"
-      printf '%b\n' "${DIM}  Example: ./scan.sh $domain -p 443 -t 30${NC}"
+      printf '%b\n' "${DIM}  Example: ./scan.sh $domain -p $SCAN_PORTS -t $((SCAN_TIMEOUT * 3))${NC}"
       verbose "Skipping CBOM generation - TLS input file is empty"
       echo '{"cbom_version":"1.0","total_assets":0,"assets":[]}' > cbom/crypto-bom.json
       echo "# No data available" > cbom/summary.md
-      progress_failed "CBOM generation"
+      progress_complete "CBOM skipped — no TLS data" 0
     else
       verbose "Running pqc_cbom.py on $TLS_INPUT"
-      if python3 "$CBOM_SCRIPT" "$TLS_INPUT" cbom/crypto-bom.json cbom/summary.md > /dev/null 2>&1; then
+      local cbom_errors
+      cbom_errors=$(mktemp)
+      _register_tmp "$cbom_errors"
+      if python3 "$CBOM_SCRIPT" "$TLS_INPUT" cbom/crypto-bom.json cbom/summary.md > /dev/null 2>"$cbom_errors"; then
         verbose "CBOM generation successful"
         progress_complete "CBOM generated" 1
       else
         verbose "CBOM generation failed, creating error placeholder"
+        if [[ -s "$cbom_errors" ]]; then
+          printf '%b\n' "  ${RED}CBOM error details:${NC}"
+          while IFS= read -r err_line; do
+            printf '%b\n' "    ${DIM}$err_line${NC}"
+          done < "$cbom_errors"
+          verbose "CBOM stderr: $(cat "$cbom_errors")"
+        fi
         echo '{"cbom_version":"1.0","error":"Generation failed","total_assets":0,"assets":[]}' > cbom/crypto-bom.json
         echo "# CBOM Generation Failed" > cbom/summary.md
         progress_failed "CBOM generation"
@@ -1456,7 +1472,7 @@ run_scan() {
     verbose "Skipping CBOM generation - no TLS data or script not found"
     echo '{"cbom_version":"1.0","total_assets":0,"assets":[]}' > cbom/crypto-bom.json
     echo "# No data available" > cbom/summary.md
-    progress_failed "CBOM generation"
+    progress_complete "CBOM skipped — no data" 0
   fi
   
   verbose "CBOM saved to cbom/crypto-bom.json and cbom/summary.md"
@@ -1572,11 +1588,11 @@ run_scan() {
   
   # Output files
   printf '%b\n' "${WHITE}Output Files:${NC}"
-  printf '%b\n' "  ${GREEN}→${NC} ${OUTPUT_DIR}/cbom/crypto-bom.json"
+  printf '%b\n' "  ${GREEN}→${NC} ${short_output_dir}/cbom/crypto-bom.json"
   printf '%b\n' "     ${DIM}CBOM for dashboard${NC}"
-  printf '%b\n' "  ${GREEN}→${NC} ${OUTPUT_DIR}/cbom/summary.md"
+  printf '%b\n' "  ${GREEN}→${NC} ${short_output_dir}/cbom/summary.md"
   printf '%b\n' "     ${DIM}Scan summary${NC}"
-  printf '%b\n' "  ${GREEN}→${NC} ${OUTPUT_DIR}/reports/scan_stats.json"
+  printf '%b\n' "  ${GREEN}→${NC} ${short_output_dir}/reports/scan_stats.json"
   printf '%b\n' "     ${DIM}Scan statistics${NC}"
   if [[ -s crypto/tls_timeouts.txt ]]; then
     printf '%b\n' "  ${YELLOW}→${NC} ${OUTPUT_DIR}/crypto/tls_timeouts.txt"
@@ -1591,10 +1607,11 @@ run_scan() {
   if [[ "$scan_count" -gt 1 ]]; then
     printf '%b\n' "${WHITE}All scans for ${CYAN}${domain}${WHITE} (newest last):${NC}"
     find "$domain_scan_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | while IFS= read -r scan_dir; do
+      local short_dir="${scan_dir#"$SCRIPT_DIR/"}"
       if [[ "$scan_dir" == "$OUTPUT_DIR" ]]; then
-        printf '%b\n' "  ${GREEN}▶${NC} ${CYAN}${scan_dir}${NC}  ${DIM}← this scan${NC}"
+        printf '%b\n' "  ${GREEN}▶${NC} ${CYAN}${short_dir}${NC}  ${DIM}← this scan${NC}"
       else
-        printf '%b\n' "  ${DIM}  ${scan_dir}${NC}"
+        printf '%b\n' "  ${DIM}  ${short_dir}${NC}"
       fi
     done
     echo ""
@@ -1605,9 +1622,9 @@ run_scan() {
 
   # Next steps
   printf '%b\n' "${WHITE}Next Steps:${NC}"
-  printf '%b\n' "  1. View summary:     ${CYAN}cat ${OUTPUT_DIR}/cbom/summary.md${NC}"
+  printf '%b\n' "  1. View summary:     ${CYAN}cat ${short_output_dir}/cbom/summary.md${NC}"
   printf '%b\n' "  2. Open dashboard:   ${CYAN}https://qubitac.com/dashboard.html${NC}"
-  printf '%b\n' "     Upload:           ${YELLOW}${OUTPUT_DIR}/cbom/crypto-bom.json${NC}"
+  printf '%b\n' "     Upload:           ${YELLOW}${short_output_dir}/cbom/crypto-bom.json${NC}"
   echo ""
   
   verbose "Scan completed successfully"
