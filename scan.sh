@@ -837,7 +837,7 @@ validate_domain() {
   verbose "After whitespace removal: '$domain'"
 
   # Check for dangerous characters
-  if [[ "$domain" == *[';&<>(){}'\''|$`']* ]]; then
+  if [[ "$domain" == *[';&<>(){}'\''|$']* ]]; then
     printf '%b\n' "${RED}Error: Invalid characters in domain name.${NC}"
     verbose "Domain contains dangerous characters"
     exit 1
@@ -1312,25 +1312,47 @@ run_scan() {
     local tls_timeout=0
     > crypto/tls_timeouts.txt
     verbose "Starting TLS scan of $total_hosts HTTPS hosts"
-    
+
     while IFS= read -r host_port; do
       scanned=$(( scanned + 1 ))
-      progress_bar "$scanned" "$total_hosts" "Scanning $host_port"
       verbose "Scanning [$scanned/$total_hosts]: $host_port"
-      
-      # Scan individual host with timeout (capture all output)
+
+      # Scan individual host with timeout
       TLS_SCAN_OUTPUT=$(mktemp)
-      _register_tmp "$TLS_SCAN_OUTPUT"
       host_port_file=$(mktemp)
-      _register_tmp "$host_port_file"
       printf '%s\n' "$host_port" > "$host_port_file"
-      if timeout "$SCAN_TIMEOUT" env SCAN_TIMEOUT="$SCAN_TIMEOUT" python3 "$SCANNER_SCRIPT" scan "$host_port_file" /dev/stdout > "$TLS_SCAN_OUTPUT" 2>/dev/null; then
+
+      # Run scan in background so we can show spinner with timer
+      timeout "$SCAN_TIMEOUT" env SCAN_TIMEOUT="$SCAN_TIMEOUT" python3 "$SCANNER_SCRIPT" scan "$host_port_file" /dev/stdout > "$TLS_SCAN_OUTPUT" 2>/dev/null &
+      local TLS_SCAN_PID=$!
+
+      # Show spinner with timer while waiting
+      start_time=$(date +%s)
+      i=0
+      while kill -0 $TLS_SCAN_PID 2>/dev/null; do
+        current_time=$(date +%s)
+        elapsed=$(( current_time - start_time ))
+        mins=$(( elapsed / 60 ))
+        secs=$(( elapsed % 60 ))
+        char_index=$(( i % ${#spinner_chars[@]} ))
+        spinner="${spinner_chars[$char_index]}"
+        printf "\r${CLEAR_LINE}  ${CYAN}%s${NC} ${DIM}[%d/%d] Scanning %s (%dm %02ds)${NC}" \
+          "$spinner" "$scanned" "$total_hosts" "$host_port" "$mins" "$secs"
+        i=$(( i + 1 ))
+        sleep 0.3
+      done
+
+      # Collect exit code
+      local tls_exit=0
+      wait $TLS_SCAN_PID || tls_exit=$?
+      printf "\r${CLEAR_LINE}"
+
+      if [[ $tls_exit -eq 0 ]]; then
         cat "$TLS_SCAN_OUTPUT" >> crypto/tls.jsonl
         tls_success=$(( tls_success + 1 )) || true
         verbose "Successfully scanned $host_port"
       else
-        EXIT_CODE=$?
-        if [[ $EXIT_CODE -eq 124 ]]; then
+        if [[ $tls_exit -eq 124 ]]; then
           tls_timeout=$(( tls_timeout + 1 )) || true
           echo "$host_port" >> crypto/tls_timeouts.txt
           verbose "Timeout scanning $host_port (exit code 124) - timeout: ${SCAN_TIMEOUT}s"
@@ -1339,7 +1361,7 @@ run_scan() {
         fi
       fi
       rm -f "$TLS_SCAN_OUTPUT" "$host_port_file"
-      
+
     done < live/hosts_ports.txt
 
     TLS_SCANNED=${HTTPS_COUNT:-0}
@@ -1595,7 +1617,7 @@ run_scan() {
   printf '%b\n' "  ${GREEN}→${NC} ${short_output_dir}/reports/scan_stats.json"
   printf '%b\n' "     ${DIM}Scan statistics${NC}"
   if [[ -s crypto/tls_timeouts.txt ]]; then
-    printf '%b\n' "  ${YELLOW}→${NC} ${OUTPUT_DIR}/crypto/tls_timeouts.txt"
+    printf '%b\n' "  ${YELLOW}→${NC} ${short_output_dir}/crypto/tls_timeouts.txt"
     printf '%b\n' "     ${DIM}Timed-out hosts — rescan with: ./scan.sh $domain -p $SCAN_PORTS -t $((SCAN_TIMEOUT * 2))${NC}"
   fi
   echo ""

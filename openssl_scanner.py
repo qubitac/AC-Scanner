@@ -818,6 +818,38 @@ def scan_host(host, port=443):
         bool(conn_info.get('server_temp_key'))
     )
 
+    # If TLS is not enabled, clear all TLS fields to prevent wrong data in CBOM
+    # This handles cases where openssl picks up TLS data from HTTP redirects
+    if not tls_enabled:
+        record['tls_version'] = ''
+        record['tls_version_raw'] = None
+        record['cipher'] = ''
+        record['server_temp_key'] = None
+        record['server_public_key_bits'] = None
+        record['peer_signature_type'] = None
+        record['peer_signature_digest'] = None
+        record['curve'] = None
+        record['curve_bits'] = None
+        record['curve_details'] = None
+        record['key_exchange_group'] = None
+        record['pqc_hybrid'] = False
+        record['has_forward_secrecy'] = False
+        record['curve_information'] = {
+            'curve': None,
+            'curve_bits': None,
+            'curve_details': None,
+            'server_temp_key': None,
+            'key_exchange_group': None,
+            'pqc_hybrid': False,
+        }
+        record['pqc_curve_assessment'] = {
+            'pqc_ready': False,
+            'vulnerabilities': [],
+            'vulnerability_count': 0,
+            'migration_priority': 'NONE',
+        }
+        record['data_quality']['has_tls_version'] = False
+
     return record
 
 
