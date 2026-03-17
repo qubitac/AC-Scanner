@@ -1,0 +1,615 @@
+{
+  "cbom_version": "1.0",
+  "generated_at": "2026-03-17T21:58:49.314729+00:00",
+  "standard": "NIST PQC (FIPS 203, 204, 205, 206)",
+  "total_assets": 4,
+  "scoring": {
+    "health_score": 61,
+    "scan_model": "web",
+    "grade": "Needs improvement",
+    "components": {
+      "tls": {
+        "score": 100,
+        "weight": 35,
+        "nist_ref": "SP 800-52 Rev.2"
+      },
+      "cert": {
+        "score": 100,
+        "weight": 30,
+        "nist_ref": "SP 800-52 Rev.2"
+      },
+      "pqc": {
+        "score": 0,
+        "weight": 35,
+        "nist_ref": "IR 8547 / FIPS 203"
+      },
+      "ssh": {
+        "score": null,
+        "weight": null,
+        "nist_ref": "SP 800-131A"
+      }
+    },
+    "pqc_detail": {
+      "kex_pct": 0,
+      "sig_pct": 0,
+      "inv_pct": 0
+    },
+    "penalty": {
+      "high": 0,
+      "moderate": 4,
+      "low": 0.0,
+      "total": 4.0
+    }
+  },
+  "migration_timeline": {
+    "nist_reference": "NIST IR 8547",
+    "nist_deprecation_year": 2030,
+    "nist_disallowment_year": 2035,
+    "scoring_model": "Priority score derived from quantum risk: KEX not hybrid (+70) + Sig not PQC (+30)",
+    "tls_override_note": "TLS 1.0/1.1 always CRITICAL (classically broken \u2014 NIST SP 800-52 Rev.2). TLS 1.2 always CRITICAL (blocks PQC hybrid KEX)",
+    "tiers": [
+      {
+        "priority": "CRITICAL",
+        "score_range": "80-100",
+        "timeline": "2026-2027",
+        "nist_deadline": "Deprecated after 2030 \u00b7 Disallowed after 2035",
+        "nist_ref": "NIST IR 8547",
+        "action": "Act immediately"
+      },
+      {
+        "priority": "HIGH",
+        "score_range": "60-79",
+        "timeline": "2026-2028",
+        "nist_deadline": "Deprecated after 2030 \u00b7 Disallowed after 2035",
+        "nist_ref": "NIST IR 8547",
+        "action": "Begin now"
+      },
+      {
+        "priority": "MEDIUM",
+        "score_range": "20-59",
+        "timeline": "2028-2030",
+        "nist_deadline": "Must complete before 2030 deprecation",
+        "nist_ref": "NIST IR 8547",
+        "action": "Plan and execute"
+      },
+      {
+        "priority": "LOW",
+        "score_range": "0-19",
+        "timeline": "2030-2032",
+        "nist_deadline": "Must complete before 2035 disallowment",
+        "nist_ref": "NIST IR 8547",
+        "action": "Monitor and prepare"
+      }
+    ],
+    "distribution": {
+      "CRITICAL": 2,
+      "HIGH": 0,
+      "MEDIUM": 0,
+      "LOW": 0
+    }
+  },
+  "assets": [
+    {
+      "_host": "qubitac.com",
+      "_port": 443,
+      "probe_status": "success",
+      "asset": {
+        "host": "qubitac.com",
+        "port": 443,
+        "timestamp": "2026-03-17T21:58:49.305916+00:00"
+      },
+      "tls_enabled": true,
+      "os": null,
+      "tls_configuration": {
+        "version": "TLS13",
+        "cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "has_forward_secrecy": true
+      },
+      "cryptographic_primitives": {
+        "key_exchange": null,
+        "authentication": "ECDSA",
+        "encryption": "AES-256",
+        "mac": "SHA-384",
+        "mode": "GCM",
+        "curve": "X25519",
+        "curve_bits": 253,
+        "pqc_hybrid": false
+      },
+      "key_exchange": {
+        "curve": "X25519",
+        "server_temp_key": "X25519, 253 bits",
+        "pqc_hybrid": false,
+        "pqc_safe": false,
+        "details": {
+          "name": "X25519",
+          "bits": 253,
+          "quantum_vulnerable": true,
+          "also_known_as": "Curve25519",
+          "nist_replacement": "Kyber-768",
+          "broken_by": "Shor's Algorithm",
+          "security_level_classical": "253-bit",
+          "security_level_quantum": "0-bit (broken)"
+        }
+      },
+      "certificate_curve": {
+        "curve": "prime256v1",
+        "display": "prime256v1",
+        "public_key_algorithm": "id-ecPublicKey",
+        "signature_algorithm": "ecdsa-with-SHA384",
+        "key_size": 256,
+        "pqc_safe": false,
+        "note": "PQC certificate signatures (Dilithium/ML-DSA) not yet widely available"
+      },
+      "curve_information": {
+        "curve": "X25519",
+        "curve_bits": 253,
+        "curve_details": {
+          "name": "X25519",
+          "bits": 253,
+          "quantum_vulnerable": true,
+          "also_known_as": "Curve25519",
+          "nist_replacement": "Kyber-768",
+          "broken_by": "Shor's Algorithm",
+          "security_level_classical": "253-bit",
+          "security_level_quantum": "0-bit (broken)"
+        },
+        "server_temp_key": "X25519, 253 bits",
+        "key_exchange_group": null,
+        "pqc_hybrid": false
+      },
+      "quantum_vulnerability": {
+        "pqc_ready": false,
+        "key_exchange_safe": false,
+        "certificate_safe": false,
+        "vulnerable_components": [
+          {
+            "component": "Key Exchange",
+            "algorithm": "X25519",
+            "quantum_vulnerable": true,
+            "algorithm_type": "Elliptic Curve Diffie-Hellman",
+            "broken_by": "Shor's Algorithm",
+            "security_level_classical": "128-bit",
+            "security_level_quantum": "0-bit (broken)",
+            "replacement": "ML-KEM (FIPS 203) via X25519MLKEM768",
+            "nist_standard": "FIPS 203"
+          },
+          {
+            "component": "Authentication/Signature",
+            "algorithm": "ECDSA",
+            "quantum_vulnerable": true,
+            "algorithm_type": "Elliptic Curve Cryptography",
+            "broken_by": "Shor's Algorithm",
+            "security_level_classical": "128-bit",
+            "security_level_quantum": "0-bit (broken)",
+            "replacement": "ML-DSA (FIPS 204)",
+            "nist_standard": "FIPS 204 or FIPS 206"
+          },
+          {
+            "component": "Symmetric Encryption",
+            "algorithm": "AES-256",
+            "quantum_vulnerable": false,
+            "algorithm_type": "Symmetric Cipher",
+            "broken_by": null,
+            "weakened_by": "Grover's Algorithm",
+            "security_level_classical": "256-bit",
+            "security_level_quantum": "128-bit",
+            "impact": "adequate",
+            "replacement": "AES-256 (adequate) or increase to 512-bit",
+            "nist_standard": "Current AES-256 is acceptable"
+          }
+        ],
+        "total_vulnerable": 2
+      },
+      "certificate": {
+        "subject": "qubitac.com",
+        "subject_alternative_names": [
+          "qubitac.com",
+          "www.qubitac.com"
+        ],
+        "issuer": "E8",
+        "valid": true,
+        "not_after": "2026-06-15T01:24:24Z",
+        "days_remaining": 89,
+        "key_algorithm": "id-ecPublicKey",
+        "issues": [],
+        "has_issues": false
+      },
+      "pqc_migration": {
+        "priority": "CRITICAL",
+        "priority_score": 100,
+        "timeline": "2026-2027",
+        "complexity": "HIGH",
+        "effort": "Deploy hybrid PQC KEX (X25519MLKEM768) + migrate certificate to ML-DSA (FIPS 204)"
+      },
+      "recommendations": [
+        {
+          "action": "Migrate to Post-Quantum Cryptography",
+          "priority": "HIGH",
+          "steps": [
+            "1. Update to TLS 1.3 (if not already)",
+            "2. Enable hybrid PQC mode (classical + quantum-safe)",
+            "3. Deploy PQC certificates (ML-DSA (FIPS 204) signatures once CAs support it)",
+            "4. Configure hybrid PQC key exchange (ML-KEM (FIPS 203) via X25519MLKEM768)",
+            "5. Migrate from X25519 to Kyber-768",
+            "5. Test with X25519MLKEM768 hybrid mode",
+            "6. Monitor for NIST standard updates"
+          ],
+          "resources": [
+            "NIST PQC Standards: https://csrc.nist.gov/projects/post-quantum-cryptography",
+            "Open Quantum Safe: https://openquantumsafe.org/",
+            "Cloudflare PQC: https://blog.cloudflare.com/post-quantum-2024/"
+          ]
+        }
+      ],
+      "detailed_certificate_analysis": {
+        "public_key_algorithm": "id-ecPublicKey",
+        "signature_algorithm": "ecdsa-with-SHA384",
+        "key_size_bits": 256,
+        "ec_curve": "prime256v1"
+      },
+      "openssl_pqc_assessment": {
+        "pqc_ready": false,
+        "vulnerabilities": [
+          {
+            "component": "Key Exchange Curve",
+            "algorithm": "X25519",
+            "quantum_vulnerable": true,
+            "broken_by": "Shor's Algorithm",
+            "nist_replacement": "Kyber-768",
+            "details": "253-bit elliptic curve",
+            "standard": "FIPS 203 (ML-KEM/Kyber)"
+          },
+          {
+            "component": "Certificate Signature",
+            "algorithm": "ecdsa-with-SHA384",
+            "quantum_vulnerable": true,
+            "broken_by": "Shor's Algorithm",
+            "nist_replacement": "Dilithium (ML-DSA) or Falcon (FN-DSA)",
+            "details": "Current: ecdsa-with-SHA384",
+            "standard": "FIPS 204 (ML-DSA) or FIPS 206 (FN-DSA)"
+          },
+          {
+            "component": "Public Key",
+            "algorithm": "id-ecPublicKey",
+            "quantum_vulnerable": true,
+            "broken_by": "Shor's Algorithm",
+            "nist_replacement": "Dilithium (ML-DSA) or Falcon (FN-DSA)",
+            "details": "256-bit key",
+            "standard": "FIPS 204/206"
+          }
+        ],
+        "vulnerability_count": 3,
+        "migration_priority": "CRITICAL"
+      }
+    },
+    {
+      "_host": "www.qubitac.com",
+      "_port": 443,
+      "probe_status": "success",
+      "asset": {
+        "host": "www.qubitac.com",
+        "port": 443,
+        "timestamp": "2026-03-17T21:58:49.313821+00:00"
+      },
+      "tls_enabled": true,
+      "os": null,
+      "tls_configuration": {
+        "version": "TLS13",
+        "cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "has_forward_secrecy": true
+      },
+      "cryptographic_primitives": {
+        "key_exchange": null,
+        "authentication": "ECDSA",
+        "encryption": "AES-256",
+        "mac": "SHA-384",
+        "mode": "GCM",
+        "curve": "X25519",
+        "curve_bits": 253,
+        "pqc_hybrid": false
+      },
+      "key_exchange": {
+        "curve": "X25519",
+        "server_temp_key": "X25519, 253 bits",
+        "pqc_hybrid": false,
+        "pqc_safe": false,
+        "details": {
+          "name": "X25519",
+          "bits": 253,
+          "quantum_vulnerable": true,
+          "also_known_as": "Curve25519",
+          "nist_replacement": "Kyber-768",
+          "broken_by": "Shor's Algorithm",
+          "security_level_classical": "253-bit",
+          "security_level_quantum": "0-bit (broken)"
+        }
+      },
+      "certificate_curve": {
+        "curve": "prime256v1",
+        "display": "prime256v1",
+        "public_key_algorithm": "id-ecPublicKey",
+        "signature_algorithm": "ecdsa-with-SHA384",
+        "key_size": 256,
+        "pqc_safe": false,
+        "note": "PQC certificate signatures (Dilithium/ML-DSA) not yet widely available"
+      },
+      "curve_information": {
+        "curve": "X25519",
+        "curve_bits": 253,
+        "curve_details": {
+          "name": "X25519",
+          "bits": 253,
+          "quantum_vulnerable": true,
+          "also_known_as": "Curve25519",
+          "nist_replacement": "Kyber-768",
+          "broken_by": "Shor's Algorithm",
+          "security_level_classical": "253-bit",
+          "security_level_quantum": "0-bit (broken)"
+        },
+        "server_temp_key": "X25519, 253 bits",
+        "key_exchange_group": null,
+        "pqc_hybrid": false
+      },
+      "quantum_vulnerability": {
+        "pqc_ready": false,
+        "key_exchange_safe": false,
+        "certificate_safe": false,
+        "vulnerable_components": [
+          {
+            "component": "Key Exchange",
+            "algorithm": "X25519",
+            "quantum_vulnerable": true,
+            "algorithm_type": "Elliptic Curve Diffie-Hellman",
+            "broken_by": "Shor's Algorithm",
+            "security_level_classical": "128-bit",
+            "security_level_quantum": "0-bit (broken)",
+            "replacement": "ML-KEM (FIPS 203) via X25519MLKEM768",
+            "nist_standard": "FIPS 203"
+          },
+          {
+            "component": "Authentication/Signature",
+            "algorithm": "ECDSA",
+            "quantum_vulnerable": true,
+            "algorithm_type": "Elliptic Curve Cryptography",
+            "broken_by": "Shor's Algorithm",
+            "security_level_classical": "128-bit",
+            "security_level_quantum": "0-bit (broken)",
+            "replacement": "ML-DSA (FIPS 204)",
+            "nist_standard": "FIPS 204 or FIPS 206"
+          },
+          {
+            "component": "Symmetric Encryption",
+            "algorithm": "AES-256",
+            "quantum_vulnerable": false,
+            "algorithm_type": "Symmetric Cipher",
+            "broken_by": null,
+            "weakened_by": "Grover's Algorithm",
+            "security_level_classical": "256-bit",
+            "security_level_quantum": "128-bit",
+            "impact": "adequate",
+            "replacement": "AES-256 (adequate) or increase to 512-bit",
+            "nist_standard": "Current AES-256 is acceptable"
+          }
+        ],
+        "total_vulnerable": 2
+      },
+      "certificate": {
+        "subject": "qubitac.com",
+        "subject_alternative_names": [
+          "qubitac.com",
+          "www.qubitac.com"
+        ],
+        "issuer": "E8",
+        "valid": true,
+        "not_after": "2026-06-15T01:24:24Z",
+        "days_remaining": 89,
+        "key_algorithm": "id-ecPublicKey",
+        "issues": [],
+        "has_issues": false
+      },
+      "pqc_migration": {
+        "priority": "CRITICAL",
+        "priority_score": 100,
+        "timeline": "2026-2027",
+        "complexity": "HIGH",
+        "effort": "Deploy hybrid PQC KEX (X25519MLKEM768) + migrate certificate to ML-DSA (FIPS 204)"
+      },
+      "recommendations": [
+        {
+          "action": "Migrate to Post-Quantum Cryptography",
+          "priority": "HIGH",
+          "steps": [
+            "1. Update to TLS 1.3 (if not already)",
+            "2. Enable hybrid PQC mode (classical + quantum-safe)",
+            "3. Deploy PQC certificates (ML-DSA (FIPS 204) signatures once CAs support it)",
+            "4. Configure hybrid PQC key exchange (ML-KEM (FIPS 203) via X25519MLKEM768)",
+            "5. Migrate from X25519 to Kyber-768",
+            "5. Test with X25519MLKEM768 hybrid mode",
+            "6. Monitor for NIST standard updates"
+          ],
+          "resources": [
+            "NIST PQC Standards: https://csrc.nist.gov/projects/post-quantum-cryptography",
+            "Open Quantum Safe: https://openquantumsafe.org/",
+            "Cloudflare PQC: https://blog.cloudflare.com/post-quantum-2024/"
+          ]
+        }
+      ],
+      "detailed_certificate_analysis": {
+        "public_key_algorithm": "id-ecPublicKey",
+        "signature_algorithm": "ecdsa-with-SHA384",
+        "key_size_bits": 256,
+        "ec_curve": "prime256v1"
+      },
+      "openssl_pqc_assessment": {
+        "pqc_ready": false,
+        "vulnerabilities": [
+          {
+            "component": "Key Exchange Curve",
+            "algorithm": "X25519",
+            "quantum_vulnerable": true,
+            "broken_by": "Shor's Algorithm",
+            "nist_replacement": "Kyber-768",
+            "details": "253-bit elliptic curve",
+            "standard": "FIPS 203 (ML-KEM/Kyber)"
+          },
+          {
+            "component": "Certificate Signature",
+            "algorithm": "ecdsa-with-SHA384",
+            "quantum_vulnerable": true,
+            "broken_by": "Shor's Algorithm",
+            "nist_replacement": "Dilithium (ML-DSA) or Falcon (FN-DSA)",
+            "details": "Current: ecdsa-with-SHA384",
+            "standard": "FIPS 204 (ML-DSA) or FIPS 206 (FN-DSA)"
+          },
+          {
+            "component": "Public Key",
+            "algorithm": "id-ecPublicKey",
+            "quantum_vulnerable": true,
+            "broken_by": "Shor's Algorithm",
+            "nist_replacement": "Dilithium (ML-DSA) or Falcon (FN-DSA)",
+            "details": "256-bit key",
+            "standard": "FIPS 204/206"
+          }
+        ],
+        "vulnerability_count": 3,
+        "migration_priority": "CRITICAL"
+      }
+    },
+    {
+      "_host": "www.qubitac.com",
+      "_port": 80,
+      "asset": {
+        "host": "www.qubitac.com",
+        "port": 80,
+        "timestamp": "2026-03-17T21:58:49.314020+00:00"
+      },
+      "tls_enabled": false,
+      "probe_status": "redirect",
+      "os": null,
+      "http_service": {
+        "running": true,
+        "status_code": 301,
+        "status_type": "redirect",
+        "status_description": "Redirects to HTTPS",
+        "status_color": "green",
+        "status_severity": "good",
+        "title": "301 Moved Permanently",
+        "server": "nginx/1.24.0 (Ubuntu)"
+      },
+      "tls_configuration": {
+        "version": "NO_TLS",
+        "cipher_suite": null,
+        "has_forward_secrecy": null
+      },
+      "cryptographic_primitives": {},
+      "key_exchange": {
+        "curve": null,
+        "pqc_safe": null,
+        "note": "HTTP 301 - Redirects to HTTPS"
+      },
+      "certificate_curve": {
+        "curve": null,
+        "display": null,
+        "pqc_safe": null,
+        "note": "HTTP 301 - Redirects to HTTPS"
+      },
+      "quantum_vulnerability": {
+        "pqc_ready": null,
+        "key_exchange_safe": null,
+        "certificate_safe": null,
+        "vulnerable_components": [],
+        "note": "Cannot assess - http 301 - redirects to https"
+      },
+      "certificate": {
+        "subject": null,
+        "issuer": null,
+        "valid": null,
+        "has_issues": null,
+        "note": "HTTP 301 - Redirects to HTTPS"
+      },
+      "pqc_migration": {
+        "priority": "INFO",
+        "priority_score": 0,
+        "timeline": "N/A",
+        "complexity": "LOW",
+        "effort": "Enable TLS/HTTPS first",
+        "note": "Enable TLS first before PQC migration"
+      },
+      "recommendations": [
+        {
+          "action": "Enable TLS/HTTPS",
+          "priority": "HIGH",
+          "reason": "This port is running unencrypted HTTP (HTTP 301 - Redirects to HTTPS)"
+        }
+      ]
+    },
+    {
+      "_host": "qubitac.com",
+      "_port": 80,
+      "asset": {
+        "host": "qubitac.com",
+        "port": 80,
+        "timestamp": "2026-03-17T21:58:49.314108+00:00"
+      },
+      "tls_enabled": false,
+      "probe_status": "redirect",
+      "os": null,
+      "http_service": {
+        "running": true,
+        "status_code": 301,
+        "status_type": "redirect",
+        "status_description": "Redirects to HTTPS",
+        "status_color": "green",
+        "status_severity": "good",
+        "title": "301 Moved Permanently",
+        "server": "nginx/1.24.0 (Ubuntu)"
+      },
+      "tls_configuration": {
+        "version": "NO_TLS",
+        "cipher_suite": null,
+        "has_forward_secrecy": null
+      },
+      "cryptographic_primitives": {},
+      "key_exchange": {
+        "curve": null,
+        "pqc_safe": null,
+        "note": "HTTP 301 - Redirects to HTTPS"
+      },
+      "certificate_curve": {
+        "curve": null,
+        "display": null,
+        "pqc_safe": null,
+        "note": "HTTP 301 - Redirects to HTTPS"
+      },
+      "quantum_vulnerability": {
+        "pqc_ready": null,
+        "key_exchange_safe": null,
+        "certificate_safe": null,
+        "vulnerable_components": [],
+        "note": "Cannot assess - http 301 - redirects to https"
+      },
+      "certificate": {
+        "subject": null,
+        "issuer": null,
+        "valid": null,
+        "has_issues": null,
+        "note": "HTTP 301 - Redirects to HTTPS"
+      },
+      "pqc_migration": {
+        "priority": "INFO",
+        "priority_score": 0,
+        "timeline": "N/A",
+        "complexity": "LOW",
+        "effort": "Enable TLS/HTTPS first",
+        "note": "Enable TLS first before PQC migration"
+      },
+      "recommendations": [
+        {
+          "action": "Enable TLS/HTTPS",
+          "priority": "HIGH",
+          "reason": "This port is running unencrypted HTTP (HTTP 301 - Redirects to HTTPS)"
+        }
+      ]
+    }
+  ]
+}

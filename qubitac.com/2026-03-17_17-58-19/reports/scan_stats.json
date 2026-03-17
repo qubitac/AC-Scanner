@@ -1,0 +1,25 @@
+{
+  "scan_info": {
+    "domain": "qubitac.com",
+    "duration_seconds": 30,
+    "scan_ports": "80,443,8080,8443,9443"
+  },
+  "statistics": {
+    "subdomains": 2,
+    "live_domains": 2,
+    "web_services": 4,
+    "https_services": 2,
+    "http_services": 2,
+    "hosts_with_both": 2,
+    "http_only_hosts": 0,
+    "tls_scanned": 2,
+    "tls_attempted": 2,
+    "ssh_total": 0,
+    "ssh_open": 0,
+    "ssh_filtered": 0,
+    "ssh_filtered_hosts": 0,
+    "ssh_closed": 0,
+    "ssh_pqc_ready": 0,
+    "ssh_scanned": 0
+  }
+}

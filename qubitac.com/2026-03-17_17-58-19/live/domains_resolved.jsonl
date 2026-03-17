@@ -1,0 +1,2 @@
+{"host":"qubitac.com","ttl":600,"resolver":["1.0.0.1:53"],"a":["165.245.138.102"],"all":["qubitac.com.\t600\tIN\tA\t165.245.138.102","\n;; OPT PSEUDOSECTION:\n; EDNS: version 0; flags:; udp: 1232"],"status_code":"NOERROR","timestamp":"2026-03-17T17:58:25.23176-04:00"}
+{"host":"www.qubitac.com","ttl":600,"resolver":["8.8.8.8:53"],"a":["165.245.138.102"],"all":["www.qubitac.com.\t600\tIN\tA\t165.245.138.102","\n;; OPT PSEUDOSECTION:\n; EDNS: version 0; flags:; udp: 512"],"status_code":"NOERROR","timestamp":"2026-03-17T17:58:25.257612-04:00"}
