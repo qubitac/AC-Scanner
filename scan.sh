@@ -1447,7 +1447,7 @@ run_scan() {
   verbose "Starting CBOM (Cryptographic Bill of Materials) generation"
   
   progress_bar 50 100 "Building CBOM..."
-  printf '\n'
+  # printf '\n'
   
   CBOM_SCRIPT=""
   [[ -f "$SCRIPT_DIR/pqc_cbom.py" ]] && CBOM_SCRIPT="$SCRIPT_DIR/pqc_cbom.py"
@@ -1461,6 +1461,7 @@ run_scan() {
   
   if [[ -n "$CBOM_SCRIPT" ]] && [[ -f "$TLS_INPUT" ]]; then
     if [[ ! -s "$TLS_INPUT" ]]; then
+      printf '\r%b' "${CLEAR_LINE}"
       printf '%b\n' "${YELLOW}WARNING: TLS input file is empty, skipping CBOM generation${NC}"
       printf '%b\n' "${DIM}  This usually means all TLS scans timed out. Try increasing the timeout with -t flag.${NC}"
       printf '%b\n' "${DIM}  Example: ./scan.sh $domain -p $SCAN_PORTS -t $((SCAN_TIMEOUT * 3))${NC}"
@@ -1475,6 +1476,7 @@ run_scan() {
       _register_tmp "$cbom_errors"
       if python3 "$CBOM_SCRIPT" "$TLS_INPUT" cbom/crypto-bom.json cbom/summary.md > /dev/null 2>"$cbom_errors"; then
         verbose "CBOM generation successful"
+        printf '\r%b' "${CLEAR_LINE}"
         progress_complete "CBOM generated" 1
       else
         verbose "CBOM generation failed, creating error placeholder"
@@ -1494,6 +1496,7 @@ run_scan() {
     verbose "Skipping CBOM generation - no TLS data or script not found"
     echo '{"cbom_version":"1.0","total_assets":0,"assets":[]}' > cbom/crypto-bom.json
     echo "# No data available" > cbom/summary.md
+    printf '\r%b' "${CLEAR_LINE}"
     progress_complete "CBOM skipped — no data" 0
   fi
   
