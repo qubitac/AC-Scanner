@@ -44,6 +44,8 @@
   <br>Full-surface scan combining web and SSH discovery in a single run — maps your entire cryptographic attack surface and outputs a unified CBOM ready for dashboard upload.
 
 
+<br>
+<br>
 AC Scanner is an open-source pipeline that maps your full cryptographic attack surface across TLS endpoints and SSH services, assesses every asset against NIST post-quantum standards, and generates a structured **Cryptographic Bill of Materials (CBOM)** — in a single command.
 
 > With NIST finalizing ML-KEM (FIPS 203), ML-DSA (FIPS 204), and SLH-DSA (FIPS 205) in 2024, and NIST IR 8547 mandating deprecation of quantum-vulnerable algorithms by **2030**, organizations need to inventory their cryptographic assets now. AC Scanner automates that process from discovery to compliance-ready reporting.
