@@ -28,7 +28,8 @@
 ![AC Scanner Demo](qubitac_web.gif)
 
 **🎬 YouTube Demo**
-AC Scanner Demo without Verbose Model - [sh scan.sh qubitac.com --web](https://youtu.be/egUzG88v9Wo)
+- AC Scanner Demo without Verbose Model - [sh scan.sh qubitac.com --web](https://youtu.be/egUzG88v9Wo)
+- AC Scanner Demo Verbose Model - [sh scan.sh qubitac.com --web -v](https://youtu.be/egUzG88v9Wo)
 
 AC Scanner is an open-source pipeline that maps your full cryptographic attack surface across TLS endpoints and SSH services, assesses every asset against NIST post-quantum standards, and generates a structured **Cryptographic Bill of Materials (CBOM)** — in a single command.
 
