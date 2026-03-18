@@ -31,7 +31,7 @@
 * [AC Scanner Demo](https://youtu.be/egUzG88v9Wo) — `sh scan.sh qubitac.com --web`
   <br>Scans all standard web ports (80, 443, 8080, 8443, 9443) and generates a Crypto Bill of Materials (CBOM) with a clean summary report.
 
-* [AC Scanner Verbose Demo](https://youtu.be/YOUR_SECOND_VIDEO_ID) — `sh scan.sh qubitac.com --web -v`
+* [AC Scanner Verbose Demo](https://youtu.be/rdt26ZM6OTY) — `sh scan.sh qubitac.com --web -v`
   <br>Same web scan with verbose output enabled.
   
 * [AC Scanner Port Demo](https://youtu.be/YOUR_SECOND_VIDEO_ID) — `sh scan.sh qubitac.com -p 443`
