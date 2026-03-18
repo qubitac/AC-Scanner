@@ -27,7 +27,7 @@
 
 ![AC Scanner Demo](qubitac_web.gif)
 
-[sh scan.sh qubitac.com --web](https://youtu.be/egUzG88v9Wo)
+AC Scanner Demo without Verbose Model - [sh scan.sh qubitac.com --web](https://youtu.be/egUzG88v9Wo)
 AC Scanner is an open-source pipeline that maps your full cryptographic attack surface across TLS endpoints and SSH services, assesses every asset against NIST post-quantum standards, and generates a structured **Cryptographic Bill of Materials (CBOM)** — in a single command.
 
 > With NIST finalizing ML-KEM (FIPS 203), ML-DSA (FIPS 204), and SLH-DSA (FIPS 205) in 2024, and NIST IR 8547 mandating deprecation of quantum-vulnerable algorithms by **2030**, organizations need to inventory their cryptographic assets now. AC Scanner automates that process from discovery to compliance-ready reporting.
