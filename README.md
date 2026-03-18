@@ -32,16 +32,16 @@
   <br>Scans all standard web ports (80, 443, 8080, 8443, 9443) and generates a Crypto Bill of Materials (CBOM) with a clean summary report.
 
 * [AC Scanner Verbose Demo](https://youtu.be/YOUR_SECOND_VIDEO_ID) — `sh scan.sh qubitac.com --web -v`
-  Same web scan with verbose output enabled.
+  <br>Same web scan with verbose output enabled.
   
 * [AC Scanner Port Demo](https://youtu.be/YOUR_SECOND_VIDEO_ID) — `sh scan.sh qubitac.com -p 443`
-  Targets one or more specific ports for a focused cryptographic audit — useful when you know exactly which endpoints to assess against NIST post-quantum standards. Multiple ports can be passed as a comma-separated list, e.g. `-p 443,8443,9443`.
+  <br>Targets one or more specific ports for a focused cryptographic audit — useful when you know exactly which endpoints to assess against NIST post-quantum standards. Multiple ports can be passed as a comma-separated list, e.g. `-p 443,8443,9443`.
   
 * [AC Scanner SSH Demo](https://youtu.be/YOUR_SECOND_VIDEO_ID) — `sh scan.sh qubitac.com --ssh`
-  Audits SSH service configuration, identifying quantum-vulnerable key exchange algorithms and host key types across your SSH endpoints.
+  <br>Audits SSH service configuration, identifying quantum-vulnerable key exchange algorithms and host key types across your SSH endpoints.
 
 * [AC Scanner Web + SSH Demo](https://youtu.be/YOUR_SECOND_VIDEO_ID) — `sh scan.sh qubitac.com --all`
-  Full-surface scan combining web and SSH discovery in a single run — maps your entire cryptographic attack surface and outputs a unified CBOM ready for dashboard upload.
+  <br>Full-surface scan combining web and SSH discovery in a single run — maps your entire cryptographic attack surface and outputs a unified CBOM ready for dashboard upload.
 
 
 AC Scanner is an open-source pipeline that maps your full cryptographic attack surface across TLS endpoints and SSH services, assesses every asset against NIST post-quantum standards, and generates a structured **Cryptographic Bill of Materials (CBOM)** — in a single command.
