@@ -154,15 +154,64 @@ progress_failed() {
   printf "\r${CLEAR_LINE}  ${RED}${bar}${NC} ${RED}  0%%${NC} ${RED}✗${NC} %s ${DIM}(failed)${NC}\n" "$label"
 }
 
+# Detect OS
+detect_os() {
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "macos"
+  elif [[ -f /etc/debian_version ]]; then
+    echo "debian"
+  elif [[ -f /etc/redhat-release ]]; then
+    echo "redhat"
+  elif [[ -f /etc/arch-release ]]; then
+    echo "arch"
+  elif grep -q Microsoft /proc/version 2>/dev/null; then
+    echo "wsl"
+  else
+    echo "linux"
+  fi
+}
+
+install_go() {
+  local os
+  os=$(detect_os)
+  
+  case "$os" in
+    macos)
+      brew install go
+      ;;
+    debian|wsl)
+      sudo apt install -y golang-go
+      ;;
+    redhat)
+      sudo yum install -y golang || sudo dnf install -y golang
+      ;;
+    arch)
+      sudo pacman -S --noconfirm go
+      ;;
+    *)
+      printf '%b\n' "${RED}Please install Go manually from https://golang.org/dl/${NC}"
+      exit 1
+      ;;
+  esac
+}
+
+install_go
+GOPATH=$HOME/go
+if [ \! -x $GOPATH ] ; then mkdir $GOPATH; fi
+
+# Add Go bin to PATH for current session
+export PATH="$PATH:$GOPATH/bin"
+
+
 # Check dependencies
 check_dependencies() {
   printf '%b\n' "${WHITE}Checking dependencies...${NC}"
   echo ""
   
-  verbose "Checking for required tools: subfinder, dnsx, httpx, jq, python3, openssl, ssh-audit, dig, timeout"
+  verbose "Checking for required tools: subfinder, httpx, jq, python3, openssl, ssh-audit, dig, timeout"
   
   local missing_tools=()
-  local tools=("subfinder" "dnsx" "httpx" "jq" "python3" "openssl" "ssh-audit" "dig" "timeout")
+  local tools=("subfinder" "httpx" "jq" "python3" "openssl" "ssh-audit" "dig" "timeout")
   local version=""
   local cmd=""
   local script=""
@@ -309,11 +358,11 @@ check_dependencies() {
   fi
 
   # dnsx >= 1.2.3
-  local dnsx_ver
-  if command -v dnsx &> /dev/null; then
-    dnsx_ver=$(dnsx -version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-    check_version "dnsx" "$dnsx_ver" "1.2.3" "go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest"
-  fi
+#  local dnsx_ver
+#  if command -v dnsx &> /dev/null; then
+#    dnsx_ver=$(dnsx -version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+#    check_version "dnsx" "$dnsx_ver" "1.2.3" "go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest"
+#  fi
 
   # ssh-audit >= 3.3.0 (use -h not --version)
   local sshaudit_ver
@@ -322,18 +371,18 @@ check_dependencies() {
     check_version "ssh-audit" "$sshaudit_ver" "3.3.0" "pip3 install --upgrade ssh-audit"
   fi
 
-  # jq >= 1.8
+  # jq >= 1.7
   local jq_ver
   if command -v jq &> /dev/null; then
     jq_ver=$(jq --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-    check_version "jq" "${jq_ver}.0" "1.8.0" "brew upgrade jq"
+    check_version "jq" "${jq_ver}.0" "1.7.0" "brew upgrade jq"
   fi
 
-  # openssl >= 3.6.1
+  # openssl >= 3.5.5
   local openssl_ver
   if command -v openssl &> /dev/null; then
     openssl_ver=$(openssl version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-    check_version "openssl" "$openssl_ver" "3.6.1" "brew upgrade openssl"
+    check_version "openssl" "$openssl_ver" "3.5.5" "brew upgrade openssl"
   fi
 
   # python3 >= 3.10.4
@@ -397,23 +446,6 @@ check_dependencies() {
   echo ""
 }
 
-# Detect OS
-detect_os() {
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "macos"
-  elif [[ -f /etc/debian_version ]]; then
-    echo "debian"
-  elif [[ -f /etc/redhat-release ]]; then
-    echo "redhat"
-  elif [[ -f /etc/arch-release ]]; then
-    echo "arch"
-  elif grep -q Microsoft /proc/version 2>/dev/null; then
-    echo "wsl"
-  else
-    echo "linux"
-  fi
-}
-
 # Install dependencies based on OS
 install_dependencies() {
   local tools=("$@")
@@ -436,7 +468,7 @@ install_dependencies() {
       for tool in "${tools[@]}"; do
         printf '%b\n' "${CYAN}Installing $tool...${NC}"
         case "$tool" in
-          subfinder|dnsx|httpx)
+          subfinder|httpx)
             brew install "$tool" 2>/dev/null || brew install projectdiscovery/tap/"$tool"
             ;;
           dig)
@@ -512,7 +544,7 @@ install_dependencies() {
           ssh-audit)
             pip3 install ssh-audit --break-system-packages 2>/dev/null || pip3 install ssh-audit 2>/dev/null || true
             ;;
-          subfinder|dnsx|httpx)
+          subfinder|httpx)
             case "$tool" in
               subfinder) install_go_tool "github.com/projectdiscovery/subfinder/v2/cmd/subfinder" ;;
               *) install_go_tool "github.com/projectdiscovery/$tool/cmd/$tool" ;;
@@ -538,7 +570,7 @@ install_dependencies() {
           ssh-audit)
             pip3 install ssh-audit --break-system-packages 2>/dev/null || pip3 install ssh-audit 2>/dev/null || true
             ;;
-          subfinder|dnsx|httpx)
+          subfinder|httpx)
             # Try AUR or Go
             if command -v yay &> /dev/null; then
               yay -S --noconfirm "$tool" 2>/dev/null || {
@@ -562,7 +594,7 @@ install_dependencies() {
       printf '%b\n' "${YELLOW}Unknown OS. Attempting generic installation...${NC}"
       for tool in "${tools[@]}"; do
         case "$tool" in
-          subfinder|dnsx|httpx)
+          subfinder|httpx)
             case "$tool" in
               subfinder) install_go_tool "github.com/projectdiscovery/subfinder/v2/cmd/subfinder" ;;
               *) install_go_tool "github.com/projectdiscovery/$tool/cmd/$tool" ;;
@@ -583,12 +615,6 @@ install_go_tool() {
   local tool_name
   tool_name=$(basename "$package")
   
-  # Check if Go is installed
-  if ! command -v go &> /dev/null; then
-    printf '%b\n' "${YELLOW}Go not found. Installing Go first...${NC}"
-    install_go
-  fi
-  
   printf '%b\n' "${CYAN}Installing $tool_name via Go...${NC}"
   go install -v "$package@latest"
   
@@ -600,31 +626,6 @@ install_go_tool() {
     printf '%b\n' "${YELLOW}Note: Add this to your ~/.bashrc or ~/.zshrc:${NC}"
     printf '%b\n' "  export PATH=\$PATH:\$(go env GOPATH)/bin"
   fi
-}
-
-# Install Go
-install_go() {
-  local os
-  os=$(detect_os)
-  
-  case "$os" in
-    macos)
-      brew install go
-      ;;
-    debian|wsl)
-      sudo apt install -y golang-go
-      ;;
-    redhat)
-      sudo yum install -y golang || sudo dnf install -y golang
-      ;;
-    arch)
-      sudo pacman -S --noconfirm go
-      ;;
-    *)
-      printf '%b\n' "${RED}Please install Go manually from https://golang.org/dl/${NC}"
-      exit 1
-      ;;
-  esac
 }
 
 # Show manual installation instructions
@@ -935,7 +936,7 @@ run_scan() {
   _register_tmp "$SUBFINDER_ERRORS"
   
   # Start subfinder - pipe stdout to file in real-time (no -o flag, use redirect instead)
-  subfinder -all -silent -d "$domain" 2>"$SUBFINDER_ERRORS" >> raw/subdomains.txt &
+  subfinder -all -silent -json -d "$domain" 2>"$SUBFINDER_ERRORS" >> raw/subdomains.jsonl &
   SUBFINDER_PID=$!
   
   # Show spinner while running
@@ -965,11 +966,11 @@ run_scan() {
   printf "\r${CLEAR_LINE}"  # Clear spinner line
   
   if [[ $SUBFINDER_EXIT -eq 0 ]]; then
-    SUBDOMAIN_COUNT=$(count_lines raw/subdomains.txt)
+    SUBDOMAIN_COUNT=$(count_lines raw/subdomains.jsonl)
     verbose "subfinder completed successfully, found $SUBDOMAIN_COUNT subdomains"
   else
     touch raw/subdomains.txt
-    SUBDOMAIN_COUNT=$(count_lines raw/subdomains.txt)
+    SUBDOMAIN_COUNT=$(count_lines raw/subdomains.txt  )
     verbose "subfinder exited with code $SUBFINDER_EXIT, found $SUBDOMAIN_COUNT subdomains"
     [[ -s "$SUBFINDER_ERRORS" ]] && verbose "subfinder stderr: $(cat "$SUBFINDER_ERRORS")"
   fi
@@ -1005,7 +1006,8 @@ run_scan() {
   _register_tmp "$DNSX_ERRORS"
   
   # Start dnsx - pipe stdout to file in real-time (no -o flag, use redirect instead)
-  dnsx -silent -l raw/subdomains.txt -json 2>"$DNSX_ERRORS" >> live/domains_resolved.jsonl &
+  #dnsx -silent -l raw/subdomains.txt -json 2>"$DNSX_ERRORS" >> live/domains_resolved.jsonl &
+  cp raw/subdomains.jsonl live/domains_resolved.jsonl
   DNSX_PID=$!
   
   # Show spinner while running (reuses function-scoped spinner vars)
