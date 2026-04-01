@@ -16,9 +16,8 @@ jobs:
 
       - name: Check OS detection
         run: |
-          source scan.sh --help 2>/dev/null || true
-          os=$(bash -c 'source scan.sh 2>/dev/null; detect_os' 2>/dev/null || echo "macos")
-          echo "Detected OS: $os"
+          echo "OS: $(uname -a)"
+          sw_vers
 
       - name: Verify brew is available
         run: command -v brew && echo "brew OK"
@@ -28,6 +27,18 @@ jobs:
 
       - name: Test version flag
         run: bash scan.sh --version
+
+      - name: Test missing domain error
+        run: |
+          bash scan.sh 2>&1 | grep -q "Usage" && echo "Missing domain handled OK"
+
+      - name: Test invalid domain
+        run: |
+          bash scan.sh "invalid!!domain" 2>&1 | grep -q "Error" && echo "Invalid domain handled OK"
+
+      - name: Test unknown flag
+        run: |
+          bash scan.sh --fakeflag 2>&1 | grep -q "Error" && echo "Unknown flag handled OK"
 
   # ── Test on real Ubuntu machine ─────────────────────────────
   test-ubuntu:
@@ -49,12 +60,27 @@ jobs:
       - name: Test version flag
         run: bash scan.sh --version
 
+      - name: Test missing domain error
+        run: |
+          bash scan.sh 2>&1 | grep -q "Usage" && echo "Missing domain handled OK"
+
+      - name: Test invalid domain
+        run: |
+          bash scan.sh "invalid!!domain" 2>&1 | grep -q "Error" && echo "Invalid domain handled OK"
+
+      - name: Test unknown flag
+        run: |
+          bash scan.sh --fakeflag 2>&1 | grep -q "Error" && echo "Unknown flag handled OK"
+
   # ── Test on RedHat (Rocky Linux) container ──────────────────
   test-redhat:
     runs-on: ubuntu-latest
     container: rockylinux:9
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install sudo
+        run: dnf install -y sudo
 
       - name: Check OS detection
         run: |
@@ -70,12 +96,27 @@ jobs:
       - name: Test version flag
         run: bash scan.sh --version
 
+      - name: Test missing domain error
+        run: |
+          bash scan.sh 2>&1 | grep -q "Usage" && echo "Missing domain handled OK"
+
+      - name: Test invalid domain
+        run: |
+          bash scan.sh "invalid!!domain" 2>&1 | grep -q "Error" && echo "Invalid domain handled OK"
+
+      - name: Test unknown flag
+        run: |
+          bash scan.sh --fakeflag 2>&1 | grep -q "Error" && echo "Unknown flag handled OK"
+
   # ── Test on Arch Linux container ────────────────────────────
   test-arch:
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install sudo
+        run: pacman -Sy --noconfirm sudo
 
       - name: Check OS detection
         run: |
@@ -91,7 +132,19 @@ jobs:
       - name: Test version flag
         run: bash scan.sh --version
 
-  # ── Test dependency installation on Ubuntu ──────────────────
+      - name: Test missing domain error
+        run: |
+          bash scan.sh 2>&1 | grep -q "Usage" && echo "Missing domain handled OK"
+
+      - name: Test invalid domain
+        run: |
+          bash scan.sh "invalid!!domain" 2>&1 | grep -q "Error" && echo "Invalid domain handled OK"
+
+      - name: Test unknown flag
+        run: |
+          bash scan.sh --fakeflag 2>&1 | grep -q "Error" && echo "Unknown flag handled OK"
+
+  # ── Test full dependency install on Ubuntu ──────────────────
   test-install-ubuntu:
     runs-on: ubuntu-latest
     steps:
@@ -103,7 +156,7 @@ jobs:
       - name: Install basic deps
         run: sudo apt install -y jq python3 openssl dnsutils coreutils
 
-      - name: Install pip ssh-audit
+      - name: Install ssh-audit
         run: pip3 install ssh-audit --break-system-packages
 
       - name: Install Go tools
@@ -113,7 +166,25 @@ jobs:
           go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
           go install github.com/projectdiscovery/httpx/cmd/httpx@latest
 
-      - name: Run dependency check
+      - name: Test help flag
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
           bash scan.sh --help
+
+      - name: Test version flag
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          bash scan.sh --version
+
+      - name: Test missing domain error
+        run: |
+          bash scan.sh 2>&1 | grep -q "Usage" && echo "Missing domain handled OK"
+
+      - name: Test invalid domain
+        run: |
+          bash scan.sh "invalid!!domain" 2>&1 | grep -q "Error" && echo "Invalid domain handled OK"
+
+      - name: Run real scan on test domain
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          bash scan.sh scanme.nmap.org -p 443 -t 30
