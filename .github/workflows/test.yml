@@ -21,10 +21,11 @@ jobs:
 
       - name: Test detect_os returns macos
         run: |
-          output=$(bash -c '
-            source ./scan.sh 2>/dev/null || true
+          output=$(bash --norc --noprofile -c '
+            eval "$(grep -A 20 "^detect_os()" ./scan.sh)"
             detect_os
           ' 2>/dev/null || true)
+          output=$(echo "$output" | tr -d '[:space:]' | head -c 20)
           echo "detect_os returned: $output"
           if [ "$output" != "macos" ]; then
             echo "FAIL: expected macos but got $output"
@@ -133,10 +134,11 @@ jobs:
 
       - name: Test detect_os returns debian
         run: |
-          output=$(bash -c '
-            source ./scan.sh 2>/dev/null || true
+          output=$(bash --norc --noprofile -c '
+            eval "$(grep -A 20 "^detect_os()" ./scan.sh)"
             detect_os
           ' 2>/dev/null || true)
+          output=$(echo "$output" | tr -d '[:space:]' | head -c 20)
           echo "detect_os returned: $output"
           if [ "$output" != "debian" ]; then
             echo "FAIL: expected debian but got $output"
@@ -250,10 +252,11 @@ jobs:
 
       - name: Test detect_os returns redhat
         run: |
-          output=$(bash -c '
-            source ./scan.sh 2>/dev/null || true
+          output=$(bash --norc --noprofile -c '
+            eval "$(grep -A 20 "^detect_os()" ./scan.sh)"
             detect_os
           ' 2>/dev/null || true)
+          output=$(echo "$output" | tr -d '[:space:]' | head -c 20)
           echo "detect_os returned: $output"
           if [ "$output" != "redhat" ]; then
             echo "FAIL: expected redhat but got $output"
@@ -366,10 +369,11 @@ jobs:
 
       - name: Test detect_os returns arch
         run: |
-          output=$(bash -c '
-            source ./scan.sh 2>/dev/null || true
+          output=$(bash --norc --noprofile -c '
+            eval "$(grep -A 20 "^detect_os()" ./scan.sh)"
             detect_os
           ' 2>/dev/null || true)
+          output=$(echo "$output" | tr -d '[:space:]' | head -c 20)
           echo "detect_os returned: $output"
           if [ "$output" != "arch" ]; then
             echo "FAIL: expected arch but got $output"
