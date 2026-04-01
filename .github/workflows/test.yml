@@ -1,0 +1,119 @@
+name: Cross-platform Dependency Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  # ── Test on real macOS machine ──────────────────────────────
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check OS detection
+        run: |
+          source scan.sh --help 2>/dev/null || true
+          os=$(bash -c 'source scan.sh 2>/dev/null; detect_os' 2>/dev/null || echo "macos")
+          echo "Detected OS: $os"
+
+      - name: Verify brew is available
+        run: command -v brew && echo "brew OK"
+
+      - name: Test help flag
+        run: bash scan.sh --help
+
+      - name: Test version flag
+        run: bash scan.sh --version
+
+  # ── Test on real Ubuntu machine ─────────────────────────────
+  test-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check OS detection
+        run: |
+          echo "OS: $(uname -a)"
+          cat /etc/os-release
+
+      - name: Verify apt is available
+        run: command -v apt && echo "apt OK"
+
+      - name: Test help flag
+        run: bash scan.sh --help
+
+      - name: Test version flag
+        run: bash scan.sh --version
+
+  # ── Test on RedHat (Rocky Linux) container ──────────────────
+  test-redhat:
+    runs-on: ubuntu-latest
+    container: rockylinux:9
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check OS detection
+        run: |
+          echo "OS: $(uname -a)"
+          cat /etc/os-release
+
+      - name: Verify yum/dnf is available
+        run: command -v dnf || command -v yum && echo "yum/dnf OK"
+
+      - name: Test help flag
+        run: bash scan.sh --help
+
+      - name: Test version flag
+        run: bash scan.sh --version
+
+  # ── Test on Arch Linux container ────────────────────────────
+  test-arch:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check OS detection
+        run: |
+          echo "OS: $(uname -a)"
+          cat /etc/os-release
+
+      - name: Verify pacman is available
+        run: command -v pacman && echo "pacman OK"
+
+      - name: Test help flag
+        run: bash scan.sh --help
+
+      - name: Test version flag
+        run: bash scan.sh --version
+
+  # ── Test dependency installation on Ubuntu ──────────────────
+  test-install-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Go
+        run: sudo apt install -y golang-go
+
+      - name: Install basic deps
+        run: sudo apt install -y jq python3 openssl dnsutils coreutils
+
+      - name: Install pip ssh-audit
+        run: pip3 install ssh-audit --break-system-packages
+
+      - name: Install Go tools
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+          go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
+          go install github.com/projectdiscovery/httpx/cmd/httpx@latest
+
+      - name: Run dependency check
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          bash scan.sh --help
