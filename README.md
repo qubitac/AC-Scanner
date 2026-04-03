@@ -69,6 +69,16 @@ AC Scanner is an open-source pipeline that maps your full cryptographic attack s
 | Expired certificates | 362 | 0.8% |
 
 
+## 💡 The Sharpest Stats for Your Talk
+
+### 1. The Big Number
+> "69% of 42,796 HTTPS endpoints across the top 35 Fortune 500 companies have zero quantum protection today."
+
+### 2. The Banking Scandal
+> "Wells Fargo — 1,794 endpoints, 0.5% PQC. Citigroup — 58.7% still on TLS 1.2. Finance is the most regulated sector and the second least PQC-ready."
+
+### 3. The Cert Hygiene Story
+> "362 expired certificates across the Fortune 35 — including 93 at CVS Health (6.7% of their endpoints) and 80 at PepsiCo (4.4%). If they can't manage cert expiry, how will they manage PQC migration?"
 
 ---
 
