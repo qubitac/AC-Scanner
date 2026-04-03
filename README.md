@@ -69,7 +69,7 @@ AC Scanner is an open-source pipeline that maps your full cryptographic attack s
 | Expired certificates | 362 | 0.8% |
 
 
-## 💡 The Sharpest Stats for Your Talk
+## 💡 The Sharpest Stats from the AC Scanner
 
 ### 1. The Big Number
 > "69% of 42,796 HTTPS endpoints across the top 35 Fortune 500 companies have zero quantum protection today."
