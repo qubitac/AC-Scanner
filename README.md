@@ -85,11 +85,11 @@ AC Scanner is an open-source pipeline that maps your full cryptographic attack s
 ---
 
 ## What It Does
-
+<!--
 ```
 bash scan.sh example.com --web (For Ports: 80,443,8080,8443,9443)
 ```
-
+-->
 One command. Four stages:
 
 | Stage | What Happens |
@@ -174,20 +174,23 @@ go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
 https://github.com/qubitac/AC-Scanner.git
 chmod +x scan.sh
 
-# Scan a domain (web ports only)
-bash scan.sh example.com
+# Scan a domain (Default web port: 443)
+sh scan.sh example.com
 
-# Scan web + SSH
-bash scan.sh example.com --web --ssh
+# Scan web (Default web ports: 80, 443, 8080, 8443, 9443)
+sh scan.sh example.com --web
 
-# Scan everything
-bash scan.sh example.com --all
+# Scan SSH (Default web ports: 22, 2222)
+sh scan.sh example.com --web --ssh
+
+# Scan everything (web ports: 80, 443, 8080, 8443, 9443, 22, 2222)
+sh scan.sh example.com --all
 
 # Custom ports
-bash scan.sh example.com -p 443,8443
+sh scan.sh example.com -p 443,8443
 
 # With verbose output
-bash scan.sh example.com --all -v
+sh scan.sh example.com --all -v
 ```
 
 ---
