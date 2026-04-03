@@ -77,10 +77,10 @@ AC Scanner is an open-source pipeline that maps your full cryptographic attack s
 > "69% of 42,796 HTTPS endpoints across the top 35 Fortune 500 companies have zero quantum protection today."
 
 ### 2. The Banking Sector
-> "Wells Fargo with 1,794 endpoints at 0.5% PQC. Citigroup with 58.7% still on TLS 1.2. Finance is the most regulated sector and the second least PQC-ready."
+> "Finance is the second least PQC-ready sector at 14.1%, despite being the most heavily regulated"
 
 ### 3. The Cert Hygiene Story
-> 362 expired certificates. 2,207 hostname mismatches. 2,569 total certificate governance failures across 35 Fortune 50 companies and 0% PQC-safe signatures across all 42,796 endpoints. This is not a quantum problem, this is a cryptographic governance crisis.
+> 362 expired certificates. 2,207 hostname mismatches. 2,569 total certificate governance failures across 35 Fortune 500 companies and 0% PQC-safe signatures across all 42,796 endpoints. This is not a quantum problem, this is a cryptographic governance crisis.
 
 ---
 
