@@ -52,6 +52,25 @@ AC Scanner is an open-source pipeline that maps your full cryptographic attack s
 
 🔗 **Dashboard:** [qubitac.com/dashboard](https://qubitac.com/dashboard)
 
+
+
+
+##  The top 35 Fortune 500 companies PQC Readiness Snapshot
+
+> First-of-its-kind cryptographic surface scan across the top 35 Fortune 500 companies, conducted April 2026 using AC Scanner.
+
+| Metric | Count | % |
+|--------|------:|--:|
+| Total HTTPS endpoints scanned | 42,796 | 100% |
+| Running TLS 1.3 | 39,574 | 92.5% |
+| Running TLS 1.2 | 3,222 | 7.5% |
+| PQC Hybrid deployed | 13,164 | 30.8% |
+| No PQC protection | 29,632 | 69.2% |
+| Expired certificates | 362 | 0.8% |
+
+
+
+
 ---
 
 ## What It Does
