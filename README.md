@@ -85,12 +85,7 @@ AC Scanner is an open-source pipeline that maps your full cryptographic attack s
 ---
 
 ## What It Does
-<!--
-```
-bash scan.sh example.com --web (For Ports: 80,443,8080,8443,9443)
-```
--->
-One command. Four stages:
+Four stages:
 
 | Stage | What Happens |
 |-------|-------------|
