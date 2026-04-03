@@ -67,6 +67,8 @@ AC Scanner is an open-source pipeline that maps your full cryptographic attack s
 | PQC Hybrid deployed | 13,164 | 30.8% |
 | No PQC protection | 29,632 | 69.2% |
 | Expired certificates | 362 | 0.8% |
+| Hostname mismatches | 2,207 | 5.2% |
+| PQC-safe certificate signatures | 0 | 0% |
 
 
 ## 💡 The Sharpest Stats from the AC Scanner
