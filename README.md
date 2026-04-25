@@ -33,16 +33,6 @@
 
 * [AC Scanner Verbose Demo](https://youtu.be/rdt26ZM6OTY) — `sh scan.sh qubitac.com --web -v`
   <br>Same web scan with verbose output enabled.
-<!--
-* [AC Scanner Port Demo](https://youtu.be/YOUR_SECOND_VIDEO_ID) — `sh scan.sh qubitac.com -p 443`
-  <br>Targets one or more specific ports for a focused cryptographic audit — useful when you know exactly which endpoints to assess against NIST post-quantum standards. Multiple ports can be passed as a comma-separated list, e.g. `-p 443,8443,9443`.
-  
-* [AC Scanner SSH Demo](https://youtu.be/YOUR_SECOND_VIDEO_ID) — `sh scan.sh qubitac.com --ssh`
-  <br>Audits SSH service configuration, identifying quantum-vulnerable key exchange algorithms and host key types across your SSH endpoints.
-
-* [AC Scanner Web + SSH Demo](https://youtu.be/YOUR_SECOND_VIDEO_ID) — `sh scan.sh qubitac.com --all`
-  <br>Full-surface scan combining web and SSH discovery in a single run — maps your entire cryptographic attack surface and outputs a unified CBOM ready for dashboard upload.
--->
 
 <br>
 <br>
