@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # AC-Scanner
 # Copyright (C) 2026 QubitAC, Inc. <https://qubitac.com/>
 #
@@ -13,9 +14,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-
-#!/usr/bin/env python3
 """
 Post-Quantum Cryptography - Cryptography Bill of Materials (PQC CBOM) Generator
 Analyzes TLS/SSL configurations and generates quantum vulnerability inventory
