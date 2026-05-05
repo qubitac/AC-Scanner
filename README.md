@@ -334,7 +334,7 @@ SCAN_TIMEOUT=30 VERBOSE=1 bash scan.sh example.com --all
 
 ## License
 
-MIT License — see [LICENSE](LICENSE)
+AGPL-3.0 License — see [LICENSE](LICENSE)
 
 ---
 
