@@ -116,14 +116,26 @@ Four stages:
 | SHA-1, MD5, RIPEMD | SSH MACs | Classically weak | SHA-256 / Poly1305 |
 | AES-128 | Symmetric | Grover's Algorithm | AES-256 |
 
-### PQC-Safe (detected as compliant)
-| Group | Classical Component | PQC Component | Security Level |
-|-------|-------------------|---------------|---------------|
-| X25519MLKEM768 | X25519 | ML-KEM-768 | 128-bit quantum-safe |
-| SecP256r1MLKEM768 | P-256 | ML-KEM-768 | 128-bit quantum-safe |
-| X25519Kyber768 | X25519 | Kyber-768 | 128-bit quantum-safe |
-| SecP384r1MLKEM1024 | P-384 | ML-KEM-1024 | 192-bit quantum-safe |
+### PQC-Safe TLS Key Exchange(detected as compliant)
+| KEX Algorithm | Classical Component | PQC Component | Security Level |
+|---------------|---------------------|---------------|---------------|
+| X25519MLKEM768 | X25519 |   ML-KEM-768 (FIPS 203) |  NIST Cat 3 (~AES-192) |
+| SecP256r1MLKEM768 | P-256 |   ML-KEM-768 (FIPS 203) | NIST Cat 3 (~AES-192) |
+| X25519Kyber768 | X25519 | Kyber-768 (round-3 draft, not FIPS 203) | ~Cat 3 nominal - deprecated |
+| SecP384r1MLKEM1024 | P-384 |  ML-KEM-1024 (FIPS 203) | NIST Cat 5 (~AES-256) |
 
+### PQC-Safe SSH Key Exchange (detected as compliant)
+| KEX Algorithm | Classical Component | PQC Component | Security Level |
+|---------------|---------------------|---------------|----------------|
+| mlkem768x25519-sha256 | X25519 | ML-KEM-768 (FIPS 203) | NIST Cat 3 (~AES-192) |
+| sntrup761x25519-sha512 | X25519 | Streamlined NTRU Prime 761 | ~Cat 2 (unofficial) |
+| sntrup761x25519-sha512@openssh.com | X25519 | Streamlined NTRU Prime 761 | ~Cat 2 (unofficial) |
+| mlkem768nistp256-sha256 | ECDH P-256 | ML-KEM-768 (FIPS 203) |  NIST Cat 3 (~AES-192) |
+| mlkem1024nistp384-sha384 | ECDH P-384 | ML-KEM-1024 (FIPS 203) |  NIST Cat 5 (~AES-256) |
+| *kyber*, *ntru*, *frodokem* | varies | Kyber / NTRU / FrodoKEM (pre-standard) | varies - not FIPS 203 |
+
+
+> Security Level = NIST post-quantum security category of the KEM component (the strength that holds against a quantum adversary). Against classical attackers, each hybrid additionally guarantees at least the strength of its curve component (~128-bit for X25519/P-256, ~192-bit for P-384). Streamlined NTRU Prime was never NIST-standardized, so its category is an estimate, not an official designation.
 ---
 
 ## Installation
