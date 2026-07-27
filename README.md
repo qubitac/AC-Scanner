@@ -23,6 +23,8 @@
 ![Python](https://img.shields.io/badge/python-3.10.4-blue)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20WSL-lightgrey)
 ![NIST](https://img.shields.io/badge/NIST-IR%208547%20Aligned-orange)
+[![Black Hat](https://img.shields.io/badge/Black%20Hat%20Arsenal-USA%202026-black)](https://blackhat.com/us-26/arsenal/schedule/?track[]=cryptography#ac-scanner---qubitac-automated-post-quantum-cryptography-discovery-tool-52334)
+[![DEF CON 34](https://img.shields.io/badge/DEF%20CON-34%20Demo%20Labs-A368EA)](https://info.defcon.org/defcon34/content/66490)
 
 
 ![AC Scanner Demo](qubitac_web.gif)
