@@ -25,6 +25,7 @@
 ![NIST](https://img.shields.io/badge/NIST-IR%208547%20Aligned-orange)
 [![Black Hat](https://img.shields.io/badge/Black%20Hat%20-Arsenal%20USA%202026-black)](https://blackhat.com/us-26/arsenal/schedule/?track[]=cryptography#ac-scanner---qubitac-automated-post-quantum-cryptography-discovery-tool-52334)
 [![DEF CON](https://img.shields.io/badge/DEF%20CON%2034%20-Demo%20Labs-A368EA)](https://info.defcon.org/defcon34/content/66490)
+[![Docker](https://img.shields.io/badge/docker-qubitac%2Facscanner-2496ED)](https://hub.docker.com/r/qubitac/acscanner)
 
 
 ![AC Scanner Demo](qubitac_web.gif)
@@ -127,6 +128,11 @@ Four stages:
 
 ## Installation
 
+### Option A — Docker (quickest)
+No dependencies required; everything is baked into the image.
+Full details: [hub.docker.com/r/qubitac/acscanner](https://hub.docker.com/r/qubitac/acscanner)
+
+### Option B — Native install
 ### Requirements
 
 - linux or macOS (Windows via WSL)
