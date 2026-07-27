@@ -84,7 +84,7 @@ Four stages:
 | **Discovery** | Subdomain enumeration, DNS resolution, web & SSH service detection |
 | **Scanning** | OpenSSL TLS handshake analysis + SSH auditing per host |
 | **Analysis** | PQC vulnerability scoring, NIST deadline mapping, CBOM generation |
-| **Reporting** | JSONL + JSON + Markdown output, ready to upload to the dashboard |
+| **Reporting** | JSON + Markdown output, ready to upload to the dashboard |
 
 ---
 
