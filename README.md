@@ -127,9 +127,12 @@ Four stages:
 
 ### Requirements
 
-- Linux or macOS (Windows via WSL)
-- Python 3.8+
-- OpenSSL 3.x (for PQC hybrid group detection)
+- linux or macOS (Windows via WSL)
+- python 3.8+
+- openSSL >= 3.6.1
+- ssh-audit >= 3.3.0
+- jq >= 1.8.0
+
 
 ### Install Dependencies
 
@@ -166,7 +169,7 @@ sh scan.sh example.com
 sh scan.sh example.com --web
 
 # Scan SSH (Default web ports: 22, 2222)
-sh scan.sh example.com --web --ssh
+sh scan.sh example.com --ssh
 
 # Scan everything (web ports: 80, 443, 8080, 8443, 9443, 22, 2222)
 sh scan.sh example.com --all
