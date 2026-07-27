@@ -15,12 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 set -euo pipefail
+
 # =============================================================================
 # QubitAC - PQC Crypto-BOM Scanner
 # https://qubitac.com
 # =============================================================================
 VERSION=1.0.1
-
 # Temp file registry for cleanup on exit
 _TMPFILES=()
 _register_tmp() { _TMPFILES+=("$@"); }
@@ -169,67 +169,15 @@ progress_failed() {
   printf "\r${CLEAR_LINE}  ${RED}${bar}${NC} ${RED}  0%%${NC} ${RED}✗${NC} %s ${DIM}(failed)${NC}\n" "$label"
 }
 
-# Detect OS
-detect_os() {
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "macos"
-  elif [[ -f /etc/debian_version ]]; then
-    echo "debian"
-  elif [[ -f /etc/redhat-release ]]; then
-    echo "redhat"
-  elif [[ -f /etc/arch-release ]]; then
-    echo "arch"
-  elif grep -q Microsoft /proc/version 2>/dev/null; then
-    echo "wsl"
-  else
-    echo "linux"
-  fi
-}
-
-install_go() {
-  local os
-  os=$(detect_os)
-  
-  case "$os" in
-    macos)
-      brew install go
-      ;;
-    debian|wsl)
-      sudo apt install -y golang-go
-      ;;
-    redhat)
-      sudo yum install -y golang || sudo dnf install -y golang
-      ;;
-    arch)
-      sudo pacman -S --noconfirm go
-      ;;
-    *)
-      printf '%b\n' "${RED}Please install Go manually from https://golang.org/dl/${NC}"
-      exit 1
-      ;;
-  esac
-}
-
-NO_DNSX=0
-
-GOPATH=$HOME/go
-# Add Go bin to PATH for current session
-export PATH="$PATH:/$GOPATH/bin"
-
 # Check dependencies
 check_dependencies() {
-  command -v go &>/dev/null
-  if [ $? == 1 ]; then install_go; fi
-  if [ \! -x $GOPATH ] ; then mkdir $GOPATH; fi
-    
-    
   printf '%b\n' "${WHITE}Checking dependencies...${NC}"
   echo ""
   
-  verbose "Checking for required tools: subfinder, httpx, jq, python3, openssl, ssh-audit, dig, timeout"
+  verbose "Checking for required tools: subfinder, dnsx, httpx, jq, python3, openssl, ssh-audit, dig, timeout"
   
   local missing_tools=()
-  local tools=("subfinder" "httpx" "jq" "python3" "openssl" "ssh-audit" "dig" "timeout")
+  local tools=("subfinder" "dnsx" "httpx" "jq" "python3" "openssl" "ssh-audit" "dig" "timeout")
   local version=""
   local cmd=""
   local script=""
@@ -389,18 +337,18 @@ check_dependencies() {
     check_version "ssh-audit" "$sshaudit_ver" "3.3.0" "pip3 install --upgrade ssh-audit"
   fi
 
-  # jq >= 1.7
+  # jq >= 1.8
   local jq_ver
   if command -v jq &> /dev/null; then
     jq_ver=$(jq --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-    check_version "jq" "${jq_ver}.0" "1.7.0" "brew upgrade jq"
+    check_version "jq" "${jq_ver}.0" "1.8.0" "brew upgrade jq"
   fi
 
-  # openssl >= 3.5.5
+  # openssl >= 3.6.1
   local openssl_ver
   if command -v openssl &> /dev/null; then
     openssl_ver=$(openssl version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-    check_version "openssl" "$openssl_ver" "3.5.5" "brew upgrade openssl"
+    check_version "openssl" "$openssl_ver" "3.6.1" "brew upgrade openssl"
   fi
 
   # python3 >= 3.10.4
@@ -434,6 +382,14 @@ check_dependencies() {
           printf '%b\n' "  ${GREEN}✓${NC} $tool_name updated successfully"
           if [[ "$fix_cmd" == go\ install* ]]; then
             export PATH="$(go env GOPATH)/bin:$PATH"
+            # Overwrite the system binary if it exists elsewhere in PATH
+            local new_bin old_bin
+            new_bin="$(go env GOPATH)/bin/$tool_name"
+            old_bin="$(which "$tool_name" 2>/dev/null)"
+            if [[ -f "$new_bin" ]] && [[ -n "$old_bin" ]] && [[ "$old_bin" != "$new_bin" ]]; then
+              printf '%b\n' "  ${DIM}Overwriting $old_bin with updated binary...${NC}"
+              sudo cp "$new_bin" "$old_bin" || printf '%b\n' "  ${YELLOW}⚠ Could not overwrite $old_bin — you may need to run: sudo cp $new_bin $old_bin${NC}"
+            fi
           fi
         else
           printf '%b\n' "  ${RED}✗${NC} $tool_name update failed"
@@ -462,6 +418,23 @@ check_dependencies() {
     printf '%b\n' "${GREEN}✓ All dependencies found and versions verified${NC}"
   fi
   echo ""
+}
+
+# Detect OS
+detect_os() {
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo "macos"
+  elif [[ -f /etc/debian_version ]]; then
+    echo "debian"
+  elif [[ -f /etc/redhat-release ]]; then
+    echo "redhat"
+  elif [[ -f /etc/arch-release ]]; then
+    echo "arch"
+  elif grep -q Microsoft /proc/version 2>/dev/null; then
+    echo "wsl"
+  else
+    echo "linux"
+  fi
 }
 
 # Install dependencies based on OS
@@ -633,6 +606,12 @@ install_go_tool() {
   local tool_name
   tool_name=$(basename "$package")
   
+  # Check if Go is installed
+  if ! command -v go &> /dev/null; then
+    printf '%b\n' "${YELLOW}Go not found. Installing Go first...${NC}"
+    install_go
+  fi
+
   printf '%b\n' "${CYAN}Installing $tool_name via Go...${NC}"
   go install -v "$package@latest"
   
@@ -644,6 +623,31 @@ install_go_tool() {
     printf '%b\n' "${YELLOW}Note: Add this to your ~/.bashrc or ~/.zshrc:${NC}"
     printf '%b\n' "  export PATH=\$PATH:\$(go env GOPATH)/bin"
   fi
+}
+
+# Install Go
+install_go() {
+  local os
+  os=$(detect_os)
+
+  case "$os" in
+    macos)
+      brew install go
+      ;;
+    debian|wsl)
+      sudo apt install -y golang-go
+      ;;
+    redhat)
+      sudo yum install -y golang || sudo dnf install -y golang
+      ;;
+    arch)
+      sudo pacman -S --noconfirm go
+      ;;
+    *)
+      printf '%b\n' "${RED}Please install Go manually from https://golang.org/dl/${NC}"
+      exit 1
+      ;;
+  esac
 }
 
 # Show manual installation instructions
@@ -954,13 +958,7 @@ run_scan() {
   _register_tmp "$SUBFINDER_ERRORS"
   
   # Start subfinder - pipe stdout to file in real-time (no -o flag, use redirect instead)
-  WITH_JSON=""
-  SUBFINDER_EXTENSION="txt"
-  if [ $NO_DNSX = 1 ]; then
-      WITH_JSON="-json"
-      SUBFINDER_EXTENSION="jsonl"
-  fi
-  subfinder -all -silent $WITH_JSON -d "$domain" 2>"$SUBFINDER_ERRORS" >> raw/subdomains.$SUBFINDER_EXTENSION &
+  subfinder -all -silent -d "$domain" 2>"$SUBFINDER_ERRORS" >> raw/subdomains.txt &
   SUBFINDER_PID=$!
   
   # Show spinner while running
@@ -986,19 +984,15 @@ run_scan() {
   # Wait for subfinder to finish and get exit code
   SUBFINDER_EXIT=0
   wait $SUBFINDER_PID || SUBFINDER_EXIT=$?
-  # Add domain if dnsx is not being used
-  if [ $NO_DNSX = 1 ]; then
-    echo \{\"host\"\:\"$domain\"\,\ \"input\"\:\"$domain\"\,\ \"source\"\:\"thc\"\} >> raw/subdomains.jsonl
-  fi
   
   printf "\r${CLEAR_LINE}"  # Clear spinner line
   
   if [[ $SUBFINDER_EXIT -eq 0 ]]; then
-    SUBDOMAIN_COUNT=$(count_lines raw/subdomains.$SUBFINDER_EXTENSION)
+    SUBDOMAIN_COUNT=$(count_lines raw/subdomains.txt)
     verbose "subfinder completed successfully, found $SUBDOMAIN_COUNT subdomains"
   else
     touch raw/subdomains.txt
-    SUBDOMAIN_COUNT=$(count_lines raw/subdomains.txt  )
+    SUBDOMAIN_COUNT=$(count_lines raw/subdomains.txt)
     verbose "subfinder exited with code $SUBFINDER_EXIT, found $SUBDOMAIN_COUNT subdomains"
     [[ -s "$SUBFINDER_ERRORS" ]] && verbose "subfinder stderr: $(cat "$SUBFINDER_ERRORS")"
   fi
@@ -1023,11 +1017,7 @@ run_scan() {
   # ════════════════════════════════════════════════════════════════════════════
   # Step 2: DNS Resolution
   # ════════════════════════════════════════════════════════════════════════════
-  SKIPPING_DNS=""
-  if [ $NO_DNSX == 1 ]; then
-      SKIPPING_DNS=" skipping"
-  fi
-  printf '%b\n' "${WHITE}[2/6]$SKIPPING_DNS DNS Resolution${NC}"
+  printf '%b\n' "${WHITE}[2/6] DNS Resolution${NC}"
   verbose "Running dnsx for DNS resolution on $SUBDOMAIN_COUNT subdomains"
   
   printf '%b\n' "  ${DIM}Resolving $SUBDOMAIN_COUNT subdomains...${NC}"
@@ -1038,12 +1028,7 @@ run_scan() {
   _register_tmp "$DNSX_ERRORS"
   
   # Start dnsx - pipe stdout to file in real-time (no -o flag, use redirect instead)
-  if [ $NO_DNSX == 0 ]; then
-      dnsx -silent -l raw/subdomains.txt -json 2>"$DNSX_ERRORS" >> live/domains_resolved.jsonl &
-  else
-      cp raw/subdomains.jsonl live/domains_resolved.jsonl
-  fi
-  #cp raw/subdomains.jsonl live/domains_resolved.jsonl
+  dnsx -silent -l raw/subdomains.txt -json 2>"$DNSX_ERRORS" >> live/domains_resolved.jsonl &
   DNSX_PID=$!
   
   # Show spinner while running (reuses function-scoped spinner vars)
@@ -1714,8 +1699,6 @@ show_help() {
   echo "  -v, --verbose          Enable verbose output"
   echo "  -h, --help             Show this help message"
   echo "  --version              Show version information"
-  echo "  --noinstall            Omit dependency checks"
-  echo "  --nodnsx               Omit DNS resolution using dnsx"
   echo ""
   printf '%b\n' "${WHITE}Presets:${NC}"
   echo "  --web                  Web ports: 80,443,8080,8443,9443"
@@ -1770,7 +1753,6 @@ add_ports() {
 
 print_banner
 
-NO_INSTALL=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help)
@@ -1780,14 +1762,6 @@ while [[ $# -gt 0 ]]; do
     --version)
       show_version
       exit 0
-      ;;
-    --nodnsx)
-      NO_DNSX=1
-      shift
-      ;;
-    --noinstall)
-      NO_INSTALL=1
-      shift
       ;;
     -p|--port)
       if [[ -z "${2:-}" ]]; then
@@ -1896,9 +1870,7 @@ fi
 printf '%b\n' "${WHITE}Timeout:${NC} ${CYAN}${SCAN_TIMEOUT}s${NC}"
 echo ""
 
-if [ $NO_INSTALL == 0 ]; then
-    check_dependencies
-fi
+check_dependencies
 run_scan "$ROOT_DOMAIN"
 
 printf '%b\n' "${GREEN}Done.${NC}"

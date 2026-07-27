@@ -18,7 +18,7 @@
 
 **Scan. Discover. Secure.**
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.1-blue)
 ![License](https://img.shields.io/badge/license-AGPL--v3-green)
 ![Python](https://img.shields.io/badge/python-3.8+-blue)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20WSL-lightgrey)
@@ -128,10 +128,13 @@ Four stages:
 ### Requirements
 
 - linux or macOS (Windows via WSL)
-- python 3.8+
-- openSSL >= 3.6.1
+- python3 >= 3.10.4
+- httpx >= 1.9.0
+- subfinder >= 2.11.0
+- dnsx >= 1.2.3
 - ssh-audit >= 3.3.0
 - jq >= 1.8.0
+- openssl >= 3.6.1
 
 
 ### Install Dependencies
