@@ -130,7 +130,7 @@ Four stages:
 
 ### Option A — Docker (quickest)
 No dependencies required; everything is baked into the image.
-Full details: [hub.docker.com/r/qubitac/acscanner](https://hub.docker.com/r/qubitac/acscanner)
+Full details: 🐳 **Docker image:** [qubitac/acscanner on Docker Hub ↗](https://hub.docker.com/r/qubitac/acscanner)
 
 ### Option B — Native install
 ### Requirements
