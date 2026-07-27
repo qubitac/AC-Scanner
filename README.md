@@ -20,7 +20,7 @@
 
 ![Version](https://img.shields.io/badge/version-1.0.1-blue)
 ![License](https://img.shields.io/badge/license-AGPL--v3-green)
-![Python](https://img.shields.io/badge/python-3.8+-blue)
+![Python](https://img.shields.io/badge/python-3.10.4-blue)
 ![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20WSL-lightgrey)
 ![NIST](https://img.shields.io/badge/NIST-IR%208547%20Aligned-orange)
 
